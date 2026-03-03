@@ -6,7 +6,6 @@ RevAgent lets anyone at a SaaS company query, analyze, forecast, and act on thei
 
 Built with LangGraph · FastAPI · Next.js · PostgreSQL · pgvector · OpenAI GPT-4o
 
----
 
 ## What it does
 
@@ -19,7 +18,7 @@ Built with LangGraph · FastAPI · Next.js · PostgreSQL · pgvector · OpenAI G
 | **Human-in-the-loop approvals** | Every recommended action requires explicit approval before execution — from the web UI, Slack, or Discord |
 | **Full audit trail** | Every agent decision, SQL query, and approval is logged to PostgreSQL |
 
----
+
 
 ## Architecture
 
@@ -61,7 +60,7 @@ User (Web / Slack / Discord)
 | **Action Agent** | RAG over playbook + agent memory, ranks recommendations, pauses for human approval |
 | **Validator Agent** | Quality and safety checks on all outputs before final response |
 
----
+
 
 ## Tech stack
 
@@ -79,7 +78,7 @@ User (Web / Slack / Discord)
 | **Observability** | LangSmith — traces, evals, cost monitoring |
 | **Payments** | Stripe webhooks — subscription events, invoice sync |
 
----
+
 
 ## Project structure
 
@@ -141,7 +140,7 @@ rev-agent/
 └── README.md
 ```
 
----
+
 
 ## Getting started
 
@@ -201,7 +200,7 @@ Forecast revenue for the next 90 days
 What are the top strategies to reduce churn?
 ```
 
----
+
 
 ## API endpoints
 
@@ -216,7 +215,7 @@ What are the top strategies to reduce churn?
 | `POST` | `/api/slack/interactions` | Slack button interaction callbacks |
 | `POST` | `/api/discord/interactions` | Discord application command handler |
 
----
+
 
 ## Notifications
 
@@ -261,7 +260,7 @@ ALERT_EMAIL=ops@yourcompany.com
 
 See [docs/](docs/) for full setup guides for each integration.
 
----
+
 
 ## How a query flows through the system
 
@@ -304,7 +303,7 @@ See [docs/](docs/) for full setup guides for each integration.
 10. SSE event "done" → frontend renders full response
 ```
 
----
+
 
 ## Security
 
@@ -314,7 +313,7 @@ See [docs/](docs/) for full setup guides for each integration.
 - **Discord signatures:** Ed25519 cryptographic verification (PyNaCl) on all inbound Discord interactions.
 - **Secrets:** Never committed. All credentials in `.env` (gitignored). `.env.example` has all keys with placeholder values.
 
----
+
 
 ## Environment variables
 
@@ -350,7 +349,7 @@ REDIS_URL=redis://localhost:6379/0
 SECRET_KEY=change-this-in-production
 ```
 
----
+
 
 ## Deployment
 
@@ -361,7 +360,6 @@ SECRET_KEY=change-this-in-production
 | Database | [Supabase](https://supabase.com) or [Neon](https://neon.tech) — PostgreSQL with pgvector |
 | Redis | [Upstash](https://upstash.com) — serverless Redis for Celery |
 
----
 
 ## Documentation
 
@@ -372,7 +370,6 @@ SECRET_KEY=change-this-in-production
 | [docs/email-langgraph.md](docs/email-langgraph.md) | Email patterns in LangGraph, SendGrid setup |
 | [RevAgent_Complete_Blueprint.md](RevAgent_Complete_Blueprint.md) | Full technical blueprint and design decisions |
 
----
 
 ## Author
 
