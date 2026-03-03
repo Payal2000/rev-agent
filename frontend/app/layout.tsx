@@ -1,33 +1,24 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import Sidebar from "@/components/Sidebar";
+import TopBar from "@/components/TopBar";
 
 export const metadata: Metadata = {
   title: "RevAgent — Revenue Intelligence",
   description: "Multi-agent AI system for SaaS revenue analytics",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body style={{ margin: 0, display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg-base)" }}>
+        <Sidebar />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+          <TopBar />
+          <main style={{ flex: 1, overflowY: "auto" }}>
+            {children}
+          </main>
+        </div>
       </body>
     </html>
   );
