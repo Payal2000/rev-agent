@@ -20,7 +20,7 @@ const CHURN_SPARKLINE = [1.8, 1.9, 1.8, 2.0, 1.9, 2.0, 2.1, 2.0, 1.9, 2.0, 2.1, 
 
 export default function DashboardPage() {
   return (
-    <div style={{ padding: "28px 32px", maxWidth: 1400 }}>
+    <div className="page-content" style={{ maxWidth: 1400 }}>
 
       {/* Page header */}
       <div style={{ marginBottom: 28 }}>
@@ -49,7 +49,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Metric cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }}>
+      <div className="metric-grid">
         <MetricCard
           label="Monthly Recurring Revenue"
           value={METRICS_SUMMARY.mrr}
@@ -121,7 +121,7 @@ export default function DashboardPage() {
       </div>
 
       {/* 2-column: Anomalies + Tier breakdown */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 14, marginBottom: 24 }}>
+      <div className="two-col-grid">
 
         {/* Anomalies */}
         <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "20px 20px" }}
@@ -174,7 +174,8 @@ export default function DashboardPage() {
             Open chat <ArrowRight size={10} />
           </Link>
         </div>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="table-scroll">
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 480 }}>
           <thead>
             <tr>
               {["Query", "Agent", "Time", "When"].map(h => (
@@ -205,6 +206,7 @@ export default function DashboardPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

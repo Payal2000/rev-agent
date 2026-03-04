@@ -30,7 +30,7 @@ export default function InsightsPage() {
   ];
 
   return (
-    <div style={{ padding: "28px 32px", maxWidth: 900 }}>
+    <div className="page-content" style={{ maxWidth: 900 }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0, letterSpacing: "-0.02em" }}>
           Insights

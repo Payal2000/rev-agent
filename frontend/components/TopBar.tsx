@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Bell, Wifi, WifiOff } from "lucide-react";
+import { Bell, Wifi, WifiOff, Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const BREADCRUMBS: Record<string, string> = {
@@ -20,7 +20,11 @@ async function checkBackend(): Promise<boolean> {
   } catch { return false; }
 }
 
-export default function TopBar() {
+interface TopBarProps {
+  onMenuClick: () => void;
+}
+
+export default function TopBar({ onMenuClick }: TopBarProps) {
   const pathname = usePathname();
   const [live, setLive] = useState<boolean | null>(null);
 
@@ -38,17 +42,29 @@ export default function TopBar() {
       justifyContent: "space-between",
       padding: "0 24px",
       flexShrink: 0,
+      gap: 12,
     }}>
-      {/* Breadcrumb */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ color: "var(--text-muted)", fontSize: 12 }}>RevAgent</span>
-        <span style={{ color: "var(--border)", fontSize: 12 }}>/</span>
-        <span style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 600 }}>{crumb}</span>
+      {/* Left: hamburger (mobile only) + breadcrumb */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <button
+          className="hamburger"
+          onClick={onMenuClick}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"}
+          aria-label="Open menu"
+        >
+          <Menu size={18} />
+        </button>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>RevAgent</span>
+          <span style={{ color: "var(--border)", fontSize: 12 }}>/</span>
+          <span style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 600 }}>{crumb}</span>
+        </div>
       </div>
 
-      {/* Right side */}
+      {/* Right: status + bell + date */}
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        {/* Backend status */}
         {live !== null && (
           <div style={{
             display: "flex", alignItems: "center", gap: 5,
@@ -60,7 +76,6 @@ export default function TopBar() {
           </div>
         )}
 
-        {/* Notification bell */}
         <button style={{
           position: "relative", background: "none", border: "none",
           cursor: "pointer", color: "var(--text-muted)", padding: 4, borderRadius: 6,
@@ -71,7 +86,6 @@ export default function TopBar() {
           onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"}
         >
           <Bell size={15} />
-          {/* Unread dot */}
           <span style={{
             position: "absolute", top: 3, right: 3,
             width: 6, height: 6, borderRadius: "50%",
@@ -80,8 +94,9 @@ export default function TopBar() {
           }} />
         </button>
 
-        {/* Date */}
-        <span style={{ fontSize: 11.5, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+        <span style={{ fontSize: 11.5, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}
+          className="page-header-actions"
+        >
           {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
         </span>
       </div>

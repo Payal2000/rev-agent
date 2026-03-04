@@ -208,14 +208,8 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Context panel */}
-      <div style={{
-        width: 320, flexShrink: 0,
-        background: "var(--bg-surface)",
-        padding: "20px 20px",
-        overflowY: "auto",
-        display: "flex", flexDirection: "column", gap: 16,
-      }}>
+      {/* Context panel — hidden on tablet/mobile via CSS */}
+      <div className="chat-context">
         <div>
           <h3 style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", margin: "0 0 10px" }}>
             Quick context

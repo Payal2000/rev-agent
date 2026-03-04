@@ -13,7 +13,7 @@ const RISK_COLOR = (score: number) =>
 
 export default function ForecastsPage() {
   return (
-    <div style={{ padding: "28px 32px", maxWidth: 1100 }}>
+    <div className="page-content" style={{ maxWidth: 1100 }}>
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", margin: 0, letterSpacing: "-0.02em" }}>
           Forecasts
@@ -24,7 +24,7 @@ export default function ForecastsPage() {
       </div>
 
       {/* Projection cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 24 }}>
+      <div className="forecast-grid">
         {[
           { label: "30-Day MRR",  value: 434200, ci: "$426.8K – $441.6K", trend: "+2.5%", color: "#6366f1" },
           { label: "60-Day MRR",  value: 444800, ci: "$433.2K – $456.4K", trend: "+4.9%", color: "#8b5cf6" },
@@ -100,7 +100,8 @@ export default function ForecastsPage() {
           </Link>
         </div>
 
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="table-scroll">
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
           <thead>
             <tr>
               {["Account", "Tier", "MRR", "Risk", "Days to Churn", "Signals"].map(h => (
@@ -156,6 +157,7 @@ export default function ForecastsPage() {
             ))}
           </tbody>
         </table>
+        </div>
 
         <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--border-subtle)", display: "flex", justifyContent: "space-between", fontSize: 12 }}>
           <span style={{ color: "var(--text-muted)" }}>
