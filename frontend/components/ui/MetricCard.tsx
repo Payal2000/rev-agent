@@ -8,8 +8,8 @@ interface Props {
   label: string;
   value: number;
   format: "currency" | "percent" | "number";
-  delta?: number;            // percent change
-  deltaInverse?: boolean;    // true for churn (lower = better)
+  delta?: number;
+  deltaInverse?: boolean;
   sparkline?: number[];
   icon: LucideIcon;
   delay?: number;
@@ -27,61 +27,72 @@ export default function MetricCard({
   const isPositive = deltaInverse ? (delta ?? 0) < 0 : (delta ?? 0) > 0;
   const isNegative = deltaInverse ? (delta ?? 0) > 0 : (delta ?? 0) < 0;
 
-  const deltaColor    = isPositive ? "#10b981" : isNegative ? "#f43f5e" : "#7a94b8";
-  const deltaBg       = isPositive ? "rgba(16,185,129,0.1)" : isNegative ? "rgba(244,63,94,0.1)" : "rgba(122,148,184,0.1)";
-  const sparkColor    = isPositive ? "#10b981" : isNegative ? "#f43f5e" : "#6366f1";
+  const deltaColor = isPositive ? "var(--success)" : isNegative ? "var(--danger)" : "var(--text-secondary)";
+  const deltaBg = isPositive ? "var(--success-soft)" : isNegative ? "var(--danger-soft)" : "var(--bg-hover)";
+  const sparkColor = isPositive ? "var(--success)" : isNegative ? "var(--danger)" : "var(--accent)";
 
   return (
     <div
-      className="animate-fade-up"
+      className="card-shell animate-fade-up"
       style={{
         animationDelay: `${delay}ms`,
         opacity: 0,
-        background: "var(--bg-surface)",
-        border: "1px solid var(--border)",
-        borderRadius: 14,
-        padding: "18px 20px",
+        padding: "var(--space-4)",
         display: "flex",
         flexDirection: "column",
-        gap: 12,
+        gap: "var(--space-3)",
         transition: "border-color 150ms",
       }}
-      onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = "#2e4060"}
+      onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = "var(--border-strong)"}
       onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = "var(--border)"}
     >
-      {/* Header row */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{
-          fontSize: 10.5, fontWeight: 600, letterSpacing: "0.07em",
-          textTransform: "uppercase", color: "var(--text-muted)",
+          fontSize: 10.5,
+          fontWeight: 600,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "var(--text-muted)",
         }}>
           {label}
         </span>
         <div style={{
-          width: 30, height: 30, borderRadius: 8,
+          width: 32,
+          height: 32,
+          borderRadius: 10,
           background: "var(--bg-elevated)",
           border: "1px solid var(--border)",
-          display: "flex", alignItems: "center", justifyContent: "center",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}>
-          <Icon size={14} color="var(--text-secondary)" strokeWidth={1.75} />
+          <Icon size={14} color="var(--text-secondary)" strokeWidth={1.8} />
         </div>
       </div>
 
-      {/* Value */}
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
         <div>
           <div className="tabular" style={{
-            fontSize: 26, fontWeight: 700, letterSpacing: "-0.03em",
-            color: "var(--text-primary)", lineHeight: 1,
+            fontSize: 27,
+            fontWeight: 700,
+            letterSpacing: "-0.03em",
+            color: "var(--text-primary)",
+            lineHeight: 1,
             fontFamily: "var(--font-mono)",
           }}>
             {fmt(value, format)}
           </div>
           {delta !== undefined && (
             <div style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              marginTop: 6, padding: "2px 7px", borderRadius: 20,
-              background: deltaBg, fontSize: 11.5, fontWeight: 600,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              marginTop: 8,
+              padding: "3px 8px",
+              borderRadius: 999,
+              background: deltaBg,
+              fontSize: 11.5,
+              fontWeight: 600,
               color: deltaColor,
             }}>
               {isPositive ? <TrendingUp size={11} /> : isNegative ? <TrendingDown size={11} /> : <Minus size={11} />}
@@ -90,7 +101,6 @@ export default function MetricCard({
           )}
         </div>
 
-        {/* Sparkline */}
         {sparkline && sparkline.length > 0 && (
           <SparkLine data={sparkline} color={sparkColor} width={72} height={32} />
         )}

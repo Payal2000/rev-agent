@@ -1,0 +1,14 @@
+[
+  {"id": 1, "name": "Meridian Analytics",    "tier": "Enterprise", "mrr": 4200, "riskScore": 94, "daysToChurn": 12, "signals": "Usage -68%, No login 21d"},
+  {"id": 2, "name": "Irongate Capital",       "tier": "Enterprise", "mrr": 6800, "riskScore": 88, "daysToChurn": 11, "signals": "Competitor eval, Budget freeze"},
+  {"id": 3, "name": "Vortex Payments",        "tier": "Enterprise", "mrr": 3800, "riskScore": 87, "daysToChurn": 18, "signals": "Support ticket, Contract renewal due"},
+  {"id": 4, "name": "Apex Dynamics",          "tier": "Enterprise", "mrr": 5100, "riskScore": 91, "daysToChurn": 9,  "signals": "Exec sponsor left, Usage -52%"},
+  {"id": 5, "name": "Crestline Partners",     "tier": "Enterprise", "mrr": 3200, "riskScore": 83, "daysToChurn": 15, "signals": "Downgrade request, Support escalation"},
+  {"id": 6, "name": "Clearfield SaaS",        "tier": "Enterprise", "mrr": 2900, "riskScore": 79, "daysToChurn": 24, "signals": "Usage -41%, Pricing objection"},
+  {"id": 7, "name": "Quantum Retail",         "tier": "Growth",     "mrr": 1100, "riskScore": 76, "daysToChurn": 22, "signals": "Invoice overdue, Usage -35%"},
+  {"id": 8, "name": "Northgate Logistics",    "tier": "Growth",     "mrr": 890,  "riskScore": 72, "daysToChurn": 31, "signals": "3 failed payments"},
+  {"id": 9, "name": "Delphi Research Group",  "tier": "Growth",     "mrr": 740,  "riskScore": 65, "daysToChurn": 38, "signals": "Usage -29%"},
+  {"id": 10,"name": "Sprout Digital",         "tier": "Growth",     "mrr": 820,  "riskScore": 62, "daysToChurn": 41, "signals": "Usage -22%"},
+  {"id": 11,"name": "Birchwood Studios",      "tier": "Starter",    "mrr": 290,  "riskScore": 68, "daysToChurn": 28, "signals": "No login 14d"},
+  {"id": 12,"name": "Harborview Health",      "tier": "Starter",    "mrr": 132,  "riskScore": 58, "daysToChurn": 45, "signals": "2 failed payments"}
+]

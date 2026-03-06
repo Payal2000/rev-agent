@@ -33,35 +33,59 @@ export default function ApprovalCard({ sessionId, context, onDecision }: Props) 
 
   return (
     <div style={{
-      background: "linear-gradient(135deg, rgba(99,102,241,0.06), rgba(245,158,11,0.04))",
-      border: "1px solid rgba(99,102,241,0.25)",
-      borderRadius: 12, padding: "16px", marginTop: 4,
+      background: "#ffffff",
+      border: "1px solid #e4e0f0",
+      borderRadius: 12,
+      padding: "14px",
+      marginTop: 4,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#f59e0b", boxShadow: "0 0 6px rgba(245,158,11,0.5)" }} />
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#f59e0b", letterSpacing: "0.03em" }}>RECOMMENDED ACTION</span>
-        <span style={{ marginLeft: "auto", fontSize: 11, color: "#6366f1", background: "rgba(99,102,241,0.1)", padding: "1px 8px", borderRadius: 10, fontWeight: 600 }}>
+        <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--warning)" }} />
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--warning)", letterSpacing: "0.04em" }}>RECOMMENDED ACTION</span>
+        <span style={{
+          marginLeft: "auto",
+          fontSize: 10.5,
+          color: "var(--accent-ink)",
+          background: "var(--accent-soft)",
+          padding: "2px 8px",
+          borderRadius: 999,
+          fontWeight: 600,
+        }}>
           Awaiting approval
         </span>
       </div>
 
       {context.anomaly_summary?.length > 0 && (
-        <div style={{ background: "rgba(244,63,94,0.08)", border: "1px solid rgba(244,63,94,0.2)", borderRadius: 8, padding: "8px 12px", marginBottom: 10 }}>
+        <div style={{ background: "var(--danger-soft)", border: "1px solid color-mix(in oklab, var(--danger) 30%, var(--border))", borderRadius: 8, padding: "8px 10px", marginBottom: 10 }}>
           {context.anomaly_summary.map((a, i) => (
             <span key={i} style={{ fontSize: 11.5, marginRight: 12 }}>
-              <span style={{ color: "#f43f5e", fontWeight: 600 }}>{a.metric.replace(/_/g, " ")}</span>
-              <span style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginLeft: 4 }}>z={a.z_score.toFixed(1)}σ</span>
+              <span style={{ color: "var(--danger)", fontWeight: 600 }}>{a.metric.replace(/_/g, " ")}</span>
+              <span style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginLeft: 4 }}>z={a.z_score.toFixed(1)}</span>
             </span>
           ))}
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
         {context.recommendations?.map((rec: Recommendation) => (
-          <div key={rec.rank} style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px" }}>
+          <div key={rec.rank} style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 12px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
               <div style={{ display: "flex", gap: 8 }}>
-                <span style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#818cf8", flexShrink: 0, marginTop: 1 }}>
+                <span style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: "50%",
+                  background: "var(--accent-soft)",
+                  border: "1px solid var(--border-strong)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "var(--accent-ink)",
+                  flexShrink: 0,
+                  marginTop: 1,
+                }}>
                   {rec.rank}
                 </span>
                 <div>
@@ -69,7 +93,18 @@ export default function ApprovalCard({ sessionId, context, onDecision }: Props) 
                   <p style={{ fontSize: 11.5, color: "var(--text-secondary)", margin: "3px 0 0", lineHeight: 1.45 }}>{rec.description}</p>
                 </div>
               </div>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#10b981", background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", padding: "2px 8px", borderRadius: 6, whiteSpace: "nowrap", flexShrink: 0, fontFamily: "var(--font-mono)" }}>
+              <span style={{
+                fontSize: 11.5,
+                fontWeight: 700,
+                color: "var(--success)",
+                background: "var(--success-soft)",
+                border: "1px solid color-mix(in oklab, var(--success) 30%, var(--border))",
+                padding: "2px 8px",
+                borderRadius: 6,
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+                fontFamily: "var(--font-mono)",
+              }}>
                 {rec.estimated_impact}
               </span>
             </div>
@@ -83,7 +118,7 @@ export default function ApprovalCard({ sessionId, context, onDecision }: Props) 
       </button>
 
       {showReasoning && (
-        <div style={{ background: "var(--bg-base)", border: "1px solid var(--border-subtle)", borderRadius: 8, padding: "10px 12px", marginBottom: 10, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+        <div style={{ background: "var(--bg-base)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", marginBottom: 10, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>
           These recommendations were generated by searching the RevAgent playbook for strategies matching
           the detected anomaly pattern. Past similar executions recovered an average of 68% of at-risk ARR within 30 days.
         </div>
@@ -92,17 +127,17 @@ export default function ApprovalCard({ sessionId, context, onDecision }: Props) 
       {showRejectInput && (
         <textarea value={rejectionReason} onChange={e => setRejectionReason(e.target.value)}
           placeholder="Reason for rejection (optional)..."
-          style={{ width: "100%", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, color: "var(--text-primary)", resize: "none", height: 60, fontFamily: "var(--font-sans)", outline: "none", marginBottom: 8, display: "block" }}
+          style={{ width: "100%", background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, color: "var(--text-primary)", resize: "none", height: 60, fontFamily: "var(--font-sans)", outline: "none", marginBottom: 8, display: "block" }}
         />
       )}
 
       <div style={{ display: "flex", gap: 8 }}>
         <button onClick={handleApprove} disabled={loading}
-          style={{ display: "flex", alignItems: "center", gap: 6, background: "#10b981", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: loading ? 0.5 : 1 }}>
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--success)", color: "#f6faf6", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: loading ? 0.5 : 1 }}>
           <CheckCircle size={14} /> Approve
         </button>
         <button onClick={handleReject} disabled={loading}
-          style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-secondary)", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: loading ? 0.5 : 1 }}>
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-secondary)", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: loading ? 0.5 : 1 }}>
           <XCircle size={14} /> {showRejectInput ? "Confirm Reject" : "Reject"}
         </button>
       </div>

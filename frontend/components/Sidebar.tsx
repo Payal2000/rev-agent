@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 const NAV = [
-  { href: "/",          icon: LayoutDashboard, label: "Dashboard"  },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard"  },
   { href: "/chat",      icon: MessageSquare,   label: "Chat"       },
   { href: "/insights",  icon: Zap,             label: "Insights"   },
   { href: "/forecasts", icon: TrendingUp,      label: "Forecasts"  },
@@ -32,16 +32,16 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Close mobile drawer on route change
   useEffect(() => {
     if (isMobile) onMobileClose();
   }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const navItems = (
-    <nav style={{ flex: 1, padding: "12px 8px", display: "flex", flexDirection: "column", gap: 2 }}>
+    <nav style={{ flex: 1, padding: "12px 8px", display: "flex", flexDirection: "column", gap: 4 }}>
       {NAV.map(({ href, icon: Icon, label }) => {
         const active = pathname === href || (href !== "/" && pathname.startsWith(href));
         const isCollapsed = !isMobile && collapsed;
+
         return (
           <Link
             key={href}
@@ -50,32 +50,35 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
               display: "flex",
               alignItems: "center",
               gap: 10,
-              padding: "9px 12px",
-              borderRadius: 8,
-              textDecoration: "none",
-              color: active ? "#818cf8" : "var(--text-secondary)",
-              background: active ? "rgba(99,102,241,0.1)" : "transparent",
-              borderLeft: active ? "2px solid #6366f1" : "2px solid transparent",
-              transition: "all 150ms ease",
+              padding: "10px 12px",
+              borderRadius: 10,
+              color: active ? "var(--accent-ink)" : "var(--text-secondary)",
+              background: active ? "var(--accent-soft)" : "transparent",
+              border: `1px solid ${active ? "var(--border-strong)" : "transparent"}`,
+              transition: "all 160ms ease",
               overflow: "hidden",
               whiteSpace: "nowrap",
-              fontWeight: active ? 600 : 400,
-              fontSize: 13.5,
+              fontWeight: active ? 600 : 500,
+              fontSize: 13,
             }}
             onMouseEnter={e => {
               if (!active) {
-                (e.currentTarget as HTMLElement).style.background = "var(--bg-hover)";
-                (e.currentTarget as HTMLElement).style.color = "var(--text-primary)";
+                const el = e.currentTarget as HTMLElement;
+                el.style.background = "var(--bg-hover)";
+                el.style.color = "var(--text-primary)";
+                el.style.borderColor = "var(--border)";
               }
             }}
             onMouseLeave={e => {
               if (!active) {
-                (e.currentTarget as HTMLElement).style.background = "transparent";
-                (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)";
+                const el = e.currentTarget as HTMLElement;
+                el.style.background = "transparent";
+                el.style.color = "var(--text-secondary)";
+                el.style.borderColor = "transparent";
               }
             }}
           >
-            <Icon size={16} strokeWidth={active ? 2 : 1.75} style={{ flexShrink: 0 }} />
+            <Icon size={15} strokeWidth={active ? 2.05 : 1.85} style={{ flexShrink: 0 }} />
             {!isCollapsed && label}
           </Link>
         );
@@ -85,11 +88,11 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
 
   const logo = (isCollapsed: boolean, showClose = false) => (
     <div style={{
-      height: 56,
+      height: 60,
       display: "flex",
       alignItems: "center",
-      padding: "0 20px",
-      borderBottom: "1px solid var(--border-subtle)",
+      padding: "0 16px",
+      borderBottom: "1px solid var(--border)",
       flexShrink: 0,
       gap: 10,
       overflow: "hidden",
@@ -97,20 +100,26 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{
-          width: 28, height: 28, borderRadius: 7,
-          background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-          display: "flex", alignItems: "center", justifyContent: "center",
+          width: 30,
+          height: 30,
+          borderRadius: 10,
+          background: "linear-gradient(145deg, color-mix(in oklab, var(--accent) 75%, #fff 25%), var(--accent))",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           flexShrink: 0,
-          boxShadow: "0 0 12px rgba(99,102,241,0.3)",
+          boxShadow: "0 8px 18px rgba(30, 45, 36, 0.2)",
         }}>
-          <Activity size={14} color="white" strokeWidth={2.5} />
+          <Activity size={14} color="#f8fbf8" strokeWidth={2.25} />
         </div>
         {!isCollapsed && (
           <span style={{
-            fontWeight: 700, fontSize: 15,
+            fontWeight: 600,
+            fontSize: 18,
             color: "var(--text-primary)",
-            letterSpacing: "-0.01em",
+            letterSpacing: "-0.02em",
             whiteSpace: "nowrap",
+            fontFamily: "var(--font-display)",
           }}>
             RevAgent
           </span>
@@ -120,13 +129,17 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
         <button
           onClick={onMobileClose}
           style={{
-            background: "none", border: "none",
-            cursor: "pointer", color: "var(--text-muted)",
-            padding: 4, borderRadius: 6,
-            display: "flex", alignItems: "center",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: "var(--text-muted)",
+            padding: 6,
+            borderRadius: 8,
+            display: "flex",
+            alignItems: "center",
           }}
         >
-          <X size={16} />
+          <X size={15} />
         </button>
       )}
     </div>
@@ -134,21 +147,25 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
 
   const bottomSection = (isCollapsed: boolean) => (
     <div style={{
-      borderTop: "1px solid var(--border-subtle)",
-      padding: "12px 8px",
+      borderTop: "1px solid var(--border)",
+      padding: "10px 8px 12px",
       display: "flex",
       flexDirection: "column",
-      gap: 2,
+      gap: 4,
     }}>
       <div style={{
         display: "flex", alignItems: "center", gap: 10,
-        padding: "8px 12px", borderRadius: 8, overflow: "hidden",
+        padding: "8px 12px", borderRadius: 10, overflow: "hidden",
       }}>
         <div style={{
-          width: 26, height: 26, borderRadius: "50%",
-          background: "linear-gradient(135deg, #1e2b42, #2d3f5c)",
+          width: 28,
+          height: 28,
+          borderRadius: "50%",
+          background: "linear-gradient(145deg, var(--bg-elevated), var(--bg-hover))",
           border: "1px solid var(--border)",
-          display: "flex", alignItems: "center", justifyContent: "center",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           flexShrink: 0,
         }}>
           <User size={13} color="var(--text-secondary)" />
@@ -168,18 +185,22 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
           onClick={() => setCollapsed(c => !c)}
           style={{
             display: "flex", alignItems: "center", gap: 10,
-            padding: "8px 12px", borderRadius: 8, border: "none",
+            padding: "8px 12px", borderRadius: 10, border: "1px solid transparent",
             background: "transparent", cursor: "pointer",
             color: "var(--text-muted)", width: "100%", textAlign: "left",
-            fontSize: 13, transition: "all 150ms",
+            fontSize: 12.5, transition: "all 150ms",
           }}
           onMouseEnter={e => {
-            (e.currentTarget as HTMLElement).style.background = "var(--bg-hover)";
-            (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)";
+            const el = e.currentTarget as HTMLElement;
+            el.style.background = "var(--bg-hover)";
+            el.style.borderColor = "var(--border)";
+            el.style.color = "var(--text-secondary)";
           }}
           onMouseLeave={e => {
-            (e.currentTarget as HTMLElement).style.background = "transparent";
-            (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
+            const el = e.currentTarget as HTMLElement;
+            el.style.background = "transparent";
+            el.style.borderColor = "transparent";
+            el.style.color = "var(--text-muted)";
           }}
         >
           {isCollapsed
@@ -191,7 +212,6 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     </div>
   );
 
-  // ── Mobile: overlay drawer ─────────────────────
   if (isMobile) {
     return (
       <>
@@ -200,8 +220,10 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
         )}
         <aside style={{
           position: "fixed",
-          top: 0, left: 0, bottom: 0,
-          width: 240,
+          top: 0,
+          left: 0,
+          bottom: 0,
+          width: 248,
           transform: mobileOpen ? "translateX(0)" : "translateX(-100%)",
           transition: "transform 250ms cubic-bezier(0.4,0,0.2,1)",
           zIndex: 50,
@@ -219,10 +241,9 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     );
   }
 
-  // ── Desktop: in-flow collapsible ───────────────
   return (
     <aside style={{
-      width: collapsed ? 64 : 240,
+      width: collapsed ? 72 : 248,
       transition: "width 200ms cubic-bezier(0.4,0,0.2,1)",
       background: "var(--bg-surface)",
       borderRight: "1px solid var(--border)",

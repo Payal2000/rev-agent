@@ -9,14 +9,14 @@ const CustomTooltip = ({ active, payload }: {active?: boolean; payload?: {payloa
   const d = payload[0].payload;
   return (
     <div style={{
-      background: "#0d1420", border: "1px solid #1e2b42",
+      background: "var(--bg-elevated)", border: "1px solid var(--border)",
       borderRadius: 8, padding: "8px 12px",
     }}>
       <p style={{ fontSize: 12, fontWeight: 600, color: d.color, marginBottom: 2 }}>{d.tier}</p>
-      <p style={{ fontSize: 11.5, color: "#e2e8f4", fontFamily: "var(--font-mono)" }}>
+      <p style={{ fontSize: 11.5, color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>
         {formatCurrency(d.mrr)} MRR
       </p>
-      <p style={{ fontSize: 11, color: "#7a94b8" }}>{d.subscribers} subscribers</p>
+      <p style={{ fontSize: 11, color: "var(--text-secondary)" }}>{d.subscribers} subscribers</p>
     </div>
   );
 };

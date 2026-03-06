@@ -1,11 +1,15 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Bell, Wifi, WifiOff, Menu } from "lucide-react";
+import {
+  Bell, Wifi, WifiOff, Menu, Sun, Moon,
+  CircleDot, Compass,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 const BREADCRUMBS: Record<string, string> = {
-  "/":          "Dashboard",
+  "/":          "Home",
+  "/dashboard": "Dashboard",
   "/chat":      "Chat",
   "/insights":  "Insights",
   "/forecasts": "Forecasts",
@@ -22,9 +26,11 @@ async function checkBackend(): Promise<boolean> {
 
 interface TopBarProps {
   onMenuClick: () => void;
+  theme: "dark" | "light";
+  onThemeToggle: () => void;
 }
 
-export default function TopBar({ onMenuClick }: TopBarProps) {
+export default function TopBar({ onMenuClick, theme, onThemeToggle }: TopBarProps) {
   const pathname = usePathname();
   const [live, setLive] = useState<boolean | null>(null);
 
@@ -32,69 +38,135 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
 
   const crumb = BREADCRUMBS[pathname] ?? "RevAgent";
 
+  const iconBtnStyle: React.CSSProperties = {
+    position: "relative",
+    background: "transparent",
+    border: "1px solid transparent",
+    cursor: "pointer",
+    color: "var(--text-muted)",
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "color 150ms, background 150ms, border-color 150ms",
+  };
+
   return (
-    <header style={{
-      height: 56,
-      background: "var(--bg-surface)",
-      borderBottom: "1px solid var(--border)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: "0 24px",
-      flexShrink: 0,
-      gap: 12,
-    }}>
-      {/* Left: hamburger (mobile only) + breadcrumb */}
+    <header className="topbar-header">
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <button
           className="hamburger"
           onClick={onMenuClick}
-          onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"}
-          onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"}
+          onMouseEnter={e => {
+            const el = e.currentTarget as HTMLElement;
+            el.style.color = "var(--text-primary)";
+            el.style.background = "var(--bg-hover)";
+          }}
+          onMouseLeave={e => {
+            const el = e.currentTarget as HTMLElement;
+            el.style.color = "var(--text-muted)";
+            el.style.background = "transparent";
+          }}
           aria-label="Open menu"
         >
           <Menu size={18} />
         </button>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>RevAgent</span>
-          <span style={{ color: "var(--border)", fontSize: 12 }}>/</span>
+          <span style={{
+            color: "var(--text-muted)",
+            fontSize: 12,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+          }}>
+            <Compass size={12} />
+            RevAgent
+          </span>
+          <span style={{ color: "var(--text-muted)", fontSize: 11.5 }}>/</span>
           <span style={{ color: "var(--text-primary)", fontSize: 13, fontWeight: 600 }}>{crumb}</span>
         </div>
       </div>
 
-      {/* Right: status + bell + date */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {live !== null && (
           <div style={{
-            display: "flex", alignItems: "center", gap: 5,
-            fontSize: 11.5, fontWeight: 500,
-            color: live ? "#10b981" : "var(--text-muted)",
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            fontSize: 11.5,
+            fontWeight: 600,
+            color: live ? "var(--success)" : "var(--text-muted)",
+            padding: "5px 9px",
+            borderRadius: 999,
+            border: "1px solid var(--border)",
+            background: live ? "var(--success-soft)" : "var(--bg-elevated)",
           }}>
             {live ? <Wifi size={12} /> : <WifiOff size={12} />}
-            <span>{live ? "Live" : "Demo"}</span>
+            <span>{live ? "Live backend" : "Demo mode"}</span>
           </div>
         )}
 
-        <button style={{
-          position: "relative", background: "none", border: "none",
-          cursor: "pointer", color: "var(--text-muted)", padding: 4, borderRadius: 6,
-          display: "flex", alignItems: "center",
-          transition: "color 150ms",
-        }}
-          onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"}
-          onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"}
+        <button
+          style={iconBtnStyle}
+          onClick={onThemeToggle}
+          aria-label="Toggle theme"
+          onMouseEnter={e => {
+            const el = e.currentTarget as HTMLElement;
+            el.style.color = "var(--text-primary)";
+            el.style.background = "var(--bg-hover)";
+            el.style.borderColor = "var(--border)";
+          }}
+          onMouseLeave={e => {
+            const el = e.currentTarget as HTMLElement;
+            el.style.color = "var(--text-muted)";
+            el.style.background = "transparent";
+            el.style.borderColor = "transparent";
+          }}
         >
-          <Bell size={15} />
-          <span style={{
-            position: "absolute", top: 3, right: 3,
-            width: 6, height: 6, borderRadius: "50%",
-            background: "#f43f5e",
-            border: "1.5px solid var(--bg-surface)",
-          }} />
+          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
         </button>
 
-        <span style={{ fontSize: 11.5, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}
+        <button
+          style={iconBtnStyle}
+          onMouseEnter={e => {
+            const el = e.currentTarget as HTMLElement;
+            el.style.color = "var(--text-primary)";
+            el.style.background = "var(--bg-hover)";
+            el.style.borderColor = "var(--border)";
+          }}
+          onMouseLeave={e => {
+            const el = e.currentTarget as HTMLElement;
+            el.style.color = "var(--text-muted)";
+            el.style.background = "transparent";
+            el.style.borderColor = "transparent";
+          }}
+        >
+          <Bell size={15} />
+          <CircleDot
+            size={10}
+            style={{
+              position: "absolute",
+              top: 2,
+              right: 2,
+              color: "var(--warning)",
+              fill: "var(--warning)",
+              background: "var(--bg-surface)",
+              borderRadius: 999,
+            }}
+          />
+        </button>
+
+        <span
+          style={{
+            fontSize: 11.5,
+            color: "var(--text-muted)",
+            fontFamily: "var(--font-mono)",
+            borderLeft: "1px solid var(--border)",
+            paddingLeft: 10,
+          }}
           className="page-header-actions"
         >
           {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}

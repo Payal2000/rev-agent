@@ -32,12 +32,12 @@ export default function StreamingSteps({ steps, activeIndex }: Props) {
     <div style={{
       display: "flex",
       flexDirection: "column",
-      gap: 4,
-      padding: "10px 14px",
-      background: "var(--bg-elevated)",
-      border: "1px solid var(--border)",
-      borderRadius: 10,
-      marginBottom: 6,
+      gap: 6,
+      padding: "10px 12px",
+      background: "#ffffff",
+      border: "1px solid #e4e0f0",
+      borderRadius: 12,
+      marginBottom: 8,
     }}>
       {enriched.map((step, i) => {
         const color = agentColor(step.agent);
@@ -56,11 +56,10 @@ export default function StreamingSteps({ steps, activeIndex }: Props) {
               gap: 9,
             }}
           >
-            {/* Status indicator */}
             <div style={{
               width: 18, height: 18, borderRadius: "50%", flexShrink: 0,
               display: "flex", alignItems: "center", justifyContent: "center",
-              background: isComplete ? `${color}20` : isActive ? `${color}15` : "var(--bg-hover)",
+              background: isComplete ? `${color}20` : isActive ? `${color}16` : "var(--bg-hover)",
               border: `1.5px solid ${isComplete ? color : isActive ? color : "var(--border)"}`,
               transition: "all 200ms",
             }}>
@@ -73,28 +72,27 @@ export default function StreamingSteps({ steps, activeIndex }: Props) {
               )}
             </div>
 
-            {/* Label */}
             <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1 }}>
               <span style={{
-                fontSize: 10.5, fontWeight: 600,
-                padding: "1px 6px", borderRadius: 10,
+                fontSize: 10.5,
+                fontWeight: 600,
+                padding: "1px 6px",
+                borderRadius: 999,
                 background: `${color}15`,
-                color: color,
+                color,
                 letterSpacing: "0.01em",
               }}>
                 {agentLabel(step.agent)}
               </span>
               <span style={{
                 fontSize: 12,
-                color: isActive ? "var(--text-secondary)" : isComplete ? "var(--text-muted)" : "var(--text-muted)",
+                color: isActive ? "var(--text-secondary)" : "var(--text-muted)",
               }}>
                 {step.label}
               </span>
             </div>
 
-            {isComplete && (
-              <span style={{ fontSize: 10, color: "var(--text-muted)" }}>✓</span>
-            )}
+            {isComplete && <Check size={13} color={color} />}
           </div>
         );
       })}

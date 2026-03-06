@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, User, Loader2 } from "lucide-react";
+import { Bot, User } from "lucide-react";
 import { ChatMessage } from "@/lib/api";
 import ApprovalCard from "./ApprovalCard";
 

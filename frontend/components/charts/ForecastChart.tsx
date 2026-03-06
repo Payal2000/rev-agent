@@ -7,7 +7,15 @@ import {
 import { FORECAST_DATA } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/utils";
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+type ForecastPoint = (typeof FORECAST_DATA)[number];
+
+interface ForecastTooltipProps {
+  active?: boolean;
+  payload?: Array<{ payload: ForecastPoint }>;
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: ForecastTooltipProps) => {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
   return (
@@ -17,13 +25,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     }}>
       <p style={{ fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>{label}</p>
       {d.actual != null && (
-        <p style={{ color: "#6366f1", margin: "2px 0", fontFamily: "var(--font-mono)" }}>
+        <p style={{ color: "var(--accent)", margin: "2px 0", fontFamily: "var(--font-mono)" }}>
           Actual: {formatCurrency(d.actual, true)}
         </p>
       )}
       {d.p50 != null && (
         <>
-          <p style={{ color: "#818cf8", margin: "2px 0", fontFamily: "var(--font-mono)" }}>
+          <p style={{ color: "var(--accent-ink)", margin: "2px 0", fontFamily: "var(--font-mono)" }}>
             P50: {formatCurrency(d.p50, true)}
           </p>
           <p style={{ color: "var(--text-muted)", margin: "2px 0", fontFamily: "var(--font-mono)", fontSize: 11 }}>
@@ -53,16 +61,16 @@ export default function ForecastChart() {
       <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="actualGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
-            <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+            <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.22} />
+            <stop offset="95%" stopColor="var(--accent)" stopOpacity={0} />
           </linearGradient>
           <linearGradient id="p95Grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.08} />
-            <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
+            <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.08} />
+            <stop offset="95%" stopColor="var(--accent)" stopOpacity={0.02} />
           </linearGradient>
           <linearGradient id="p80Grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
-            <stop offset="95%" stopColor="#6366f1" stopOpacity={0.04} />
+            <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.15} />
+            <stop offset="95%" stopColor="var(--accent)" stopOpacity={0.04} />
           </linearGradient>
         </defs>
 
@@ -118,18 +126,18 @@ export default function ForecastChart() {
         {/* Actual MRR area + line */}
         <Area
           type="monotone" dataKey="actual"
-          stroke="#6366f1" strokeWidth={2}
+          stroke="var(--accent)" strokeWidth={2}
           fill="url(#actualGrad)"
-          dot={{ fill: "#6366f1", r: 3, strokeWidth: 0 }}
+          dot={{ fill: "var(--accent)", r: 3, strokeWidth: 0 }}
           connectNulls
         />
 
         {/* P50 forecast line */}
         <Line
           type="monotone" dataKey="p50"
-          stroke="#6366f1" strokeWidth={2}
+          stroke="var(--accent)" strokeWidth={2}
           strokeDasharray="6 3"
-          dot={{ fill: "#6366f1", r: 3, strokeWidth: 0 }}
+          dot={{ fill: "var(--accent)", r: 3, strokeWidth: 0 }}
           connectNulls
         />
       </ComposedChart>

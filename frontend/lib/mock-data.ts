@@ -37,9 +37,9 @@ export const MRR_TREND = [
 
 // Tier breakdown
 export const TIER_DATA = [
-  { tier: "Starter",    mrr: 84760,  subscribers: 642, arpu: 132,  color: "#4f7eff", pct: 20 },
-  { tier: "Growth",     mrr: 190710, subscribers: 514, arpu: 371,  color: "#6366f1", pct: 45 },
-  { tier: "Enterprise", mrr: 148330, subscribers: 128, arpu: 1159, color: "#8b5cf6", pct: 35 },
+  { tier: "Starter",    mrr: 84760,  subscribers: 642, arpu: 132,  color: "#0ea5e9", pct: 20 },
+  { tier: "Growth",     mrr: 190710, subscribers: 514, arpu: 371,  color: "#2563eb", pct: 45 },
+  { tier: "Enterprise", mrr: 148330, subscribers: 128, arpu: 1159, color: "#22d3ee", pct: 35 },
 ];
 
 // Anomaly events

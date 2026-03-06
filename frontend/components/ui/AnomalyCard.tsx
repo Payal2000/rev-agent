@@ -1,4 +1,10 @@
-import { AlertTriangle, TrendingUp, TrendingDown, AlertCircle, Info } from "lucide-react";
+import {
+  AlertTriangle,
+  AlertCircle,
+  Info,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
 import { severityDotColor, severityColor, formatCurrency } from "@/lib/utils";
 
 interface Props {
@@ -28,29 +34,28 @@ export default function AnomalyCard({
   const Icon = SEVERITY_ICON[severity];
 
   const bgColor = {
-    low:      "rgba(16,185,129,0.05)",
-    medium:   "rgba(245,158,11,0.05)",
-    high:     "rgba(249,115,22,0.05)",
-    critical: "rgba(244,63,94,0.06)",
+    low: "color-mix(in oklab, var(--success-soft) 44%, transparent)",
+    medium: "color-mix(in oklab, var(--warning-soft) 44%, transparent)",
+    high: "rgba(170, 124, 83, 0.13)",
+    critical: "color-mix(in oklab, var(--danger-soft) 52%, transparent)",
   }[severity];
 
   const borderColor = {
-    low:      "rgba(16,185,129,0.15)",
-    medium:   "rgba(245,158,11,0.15)",
-    high:     "rgba(249,115,22,0.15)",
-    critical: "rgba(244,63,94,0.2)",
+    low: "color-mix(in oklab, var(--success) 24%, var(--border))",
+    medium: "color-mix(in oklab, var(--warning) 26%, var(--border))",
+    high: "rgba(170, 124, 83, 0.34)",
+    critical: "color-mix(in oklab, var(--danger) 28%, var(--border))",
   }[severity];
 
   return (
     <div style={{
       background: bgColor,
       border: `1px solid ${borderColor}`,
-      borderRadius: 10,
-      padding: compact ? "10px 14px" : "14px 16px",
+      borderRadius: 12,
+      padding: compact ? "10px 12px" : "14px 16px",
       display: "flex",
       gap: 10,
     }}>
-      {/* Severity dot */}
       <div style={{ paddingTop: 2, flexShrink: 0 }}>
         <span style={{ width: 8, height: 8, borderRadius: "50%", display: "block" }} className={dotCls} />
       </div>
@@ -59,14 +64,24 @@ export default function AnomalyCard({
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
           <div>
             <span style={{
-              fontSize: 9.5, fontWeight: 600, letterSpacing: "0.08em",
-              textTransform: "uppercase", color: textCls,
+              fontSize: 9.5,
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: textCls,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
             }}>
+              <Icon size={11} />
               {metricLabel}
             </span>
             <p style={{
-              fontSize: 13, fontWeight: 600, color: "var(--text-primary)",
-              margin: "2px 0 0", lineHeight: 1.35,
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--text-primary)",
+              margin: "3px 0 0",
+              lineHeight: 1.35,
             }}>
               {title}
             </p>
@@ -78,30 +93,38 @@ export default function AnomalyCard({
 
         {!compact && (
           <p style={{
-            fontSize: 12, color: "var(--text-secondary)", marginTop: 5, lineHeight: 1.5,
+            fontSize: 12,
+            color: "var(--text-secondary)",
+            marginTop: 6,
+            lineHeight: 1.55,
           }}>
             {explanation}
           </p>
         )}
 
-        {/* Meta row */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10, marginTop: compact ? 4 : 8,
-        }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: compact ? 5 : 9, flexWrap: "wrap" }}>
           <span style={{
-            fontSize: 11, fontFamily: "var(--font-mono)", color: textCls,
-            background: `${borderColor}`,
-            padding: "1px 6px", borderRadius: 4,
+            fontSize: 11,
+            fontFamily: "var(--font-mono)",
+            color: textCls,
+            background: "rgba(255,255,255,0.12)",
+            padding: "2px 7px",
+            borderRadius: 6,
+            border: `1px solid ${borderColor}`,
           }}>
-            z={zScore.toFixed(1)}σ
+            z={zScore.toFixed(1)} sigma
           </span>
-          {affectedMrr && (
-            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-              {affectedMrr > 0 ? "↓" : "↑"} {formatCurrency(Math.abs(affectedMrr))} MRR
+          {affectedMrr !== undefined && (
+            <span style={{ fontSize: 11, color: "var(--text-secondary)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+              {affectedMrr > 0 ? <TrendingDown size={12} color="var(--danger)" /> : <TrendingUp size={12} color="var(--success)" />}
+              {formatCurrency(Math.abs(affectedMrr))} MRR
             </span>
           )}
           <span style={{
-            fontSize: 10.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em",
+            fontSize: 10.5,
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
             color: textCls,
           }}>
             {severity}

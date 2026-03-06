@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 interface Props {
   data: number[];
   color?: string;
@@ -5,7 +7,8 @@ interface Props {
   height?: number;
 }
 
-export default function SparkLine({ data, color = "#6366f1", width = 80, height = 36 }: Props) {
+export default function SparkLine({ data, color = "var(--accent)", width = 80, height = 36 }: Props) {
+  const gradientId = useId().replace(/[:]/g, "");
   if (!data || data.length < 2) return null;
 
   const min = Math.min(...data);
@@ -27,12 +30,12 @@ export default function SparkLine({ data, color = "#6366f1", width = 80, height 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
       <defs>
-        <linearGradient id={`sg-${color.replace("#","")}`} x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.3" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
-      <path d={areaPath} fill={`url(#sg-${color.replace("#","")})`} />
+      <path d={areaPath} fill={`url(#${gradientId})`} />
       <path d={linePath} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
