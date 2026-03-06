@@ -8,7 +8,7 @@ import { ArrowRight, CheckCircle2 } from "lucide-react";
 
 type Severity = "all" | "critical" | "high" | "medium" | "low";
 
-const CARD = "bg-[#fcfcfd] dark:bg-white/6 border-[3px] border-white dark:border-white/10 shadow-sm rounded-2xl";
+const CARD = "bg-white/65 backdrop-blur-sm dark:bg-white/6 border-[3px] border-white dark:border-white/10 shadow-sm rounded-2xl";
 
 export default function InsightsPage() {
   const [filter, setFilter] = useState<Severity>("all");
@@ -32,7 +32,7 @@ export default function InsightsPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-4 p-4 lg:p-6 max-w-4xl w-full mx-auto">
+    <div className="flex flex-col gap-4 px-4 py-4 lg:px-6 lg:py-6 w-full">
       {/* Header */}
       <div className={`${CARD} px-6 py-5`}>
         <h1 className="page-title">Insights</h1>

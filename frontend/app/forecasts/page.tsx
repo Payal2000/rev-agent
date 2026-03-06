@@ -11,11 +11,11 @@ const ForecastChart = dynamic(() => import("@/components/charts/ForecastChart"),
 const RISK_COLOR = (score: number) =>
   score >= 90 ? "var(--danger)" : score >= 75 ? "var(--warning)" : score >= 60 ? "var(--accent)" : "var(--success)";
 
-const CARD = "bg-[#fcfcfd] dark:bg-white/6 border-[3px] border-white dark:border-white/10 shadow-sm rounded-2xl";
+const CARD = "bg-white/65 backdrop-blur-sm dark:bg-white/6 border-[3px] border-white dark:border-white/10 shadow-sm rounded-2xl";
 
 export default function ForecastsPage() {
   return (
-    <div className="flex flex-col gap-4 p-4 lg:p-6 max-w-5xl w-full mx-auto">
+    <div className="flex flex-col gap-4 px-4 py-4 lg:px-6 lg:py-6 w-full">
       {/* Header */}
       <div className={`${CARD} px-6 py-5`}>
         <h1 className="page-title">Forecasts</h1>
@@ -23,7 +23,7 @@ export default function ForecastsPage() {
       </div>
 
       {/* Forecast metric cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 w-full">
         {[
           { label: "30-Day MRR", value: 434200, ci: "$426.8K – $441.6K", trend: "+2.5%", color: "var(--accent-ink)" },
           { label: "60-Day MRR", value: 444800, ci: "$433.2K – $456.4K", trend: "+4.9%", color: "var(--success)" },
