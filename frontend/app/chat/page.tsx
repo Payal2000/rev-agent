@@ -32,7 +32,7 @@ const SUGGESTED = [
   "Which accounts are at risk?",
 ];
 
-const CARD = "bg-[#fcfcfd] dark:bg-white/6 border-[3px] border-white dark:border-white/10 shadow-sm rounded-2xl";
+const CARD = "bg-white/65 backdrop-blur-sm dark:bg-white/6 border-[3px] border-white dark:border-white/10 shadow-sm rounded-2xl";
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);

@@ -8,7 +8,7 @@ export default function Page() {
   return (
     <div className="@container/main flex flex-1 flex-col gap-4 py-4 md:gap-5 md:py-6">
       {/* Welcome header + KPI metric cards — one container */}
-      <div className="mx-4 lg:mx-6 rounded-2xl bg-[#fcfcfd] border-[3px] border-white shadow-sm">
+      <div className="mx-4 lg:mx-6 rounded-2xl bg-white/65 backdrop-blur-sm border-[3px] border-white shadow-sm">
         <div className="px-6 pt-6 pb-4">
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Hello, Payal 👋</h1>
           <p className="mt-1 text-sm text-muted-foreground">Monitor revenue performance and AI insights in real time.</p>

@@ -342,7 +342,7 @@ export function DataTable({ data: initialData }: { data: Account[] }) {
   const starterCount = data.filter((r) => r.tier === "Starter").length
 
   return (
-    <div className="mx-4 lg:mx-6 rounded-2xl bg-[#fcfcfd] dark:bg-white/6 border-[3px] border-white dark:border-white/10 shadow-sm overflow-hidden">
+    <div className="mx-4 lg:mx-6 rounded-2xl bg-white/65 backdrop-blur-sm dark:bg-white/6 border-[3px] border-white dark:border-white/10 shadow-sm overflow-hidden">
     <Tabs
       value={activeTab}
       onValueChange={setActiveTab}
