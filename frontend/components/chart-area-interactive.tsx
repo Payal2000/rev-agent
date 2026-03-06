@@ -65,7 +65,7 @@ export function ChartAreaInteractive() {
   }, [timeRange])
 
   return (
-    <Card className="@container/card bg-[#fcfcfd] dark:bg-white/6 border-[3px] border-white dark:border-white/10 shadow-sm rounded-2xl">
+    <Card className="@container/card bg-white/65 backdrop-blur-sm dark:bg-white/6 border-[3px] border-white dark:border-white/10 shadow-sm rounded-2xl">
       <CardHeader>
         <CardTitle>MRR Growth Components</CardTitle>
         <CardDescription>
@@ -119,19 +119,19 @@ export function ChartAreaInteractive() {
                 <stop
                   offset="5%"
                   stopColor="var(--color-new)"
-                  stopOpacity={0.8}
+                  stopOpacity={0.9}
                 />
                 <stop
                   offset="95%"
                   stopColor="var(--color-new)"
-                  stopOpacity={0.1}
+                  stopOpacity={0.2}
                 />
               </linearGradient>
               <linearGradient id="fillExpansion" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
                   stopColor="var(--color-expansion)"
-                  stopOpacity={0.8}
+                  stopOpacity={1}
                 />
                 <stop
                   offset="95%"
