@@ -1,11 +1,7 @@
-import {
-  AlertTriangle,
-  AlertCircle,
-  Info,
-  TrendingDown,
-  TrendingUp,
-} from "lucide-react";
-import { severityDotColor, severityColor, formatCurrency } from "@/lib/utils";
+import { AlertTriangle, AlertCircle, Info, TrendingDown, TrendingUp, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { formatCurrency } from "@/lib/utils";
+import { KPI_COLORS } from "@/lib/kpi-colors";
 
 interface Props {
   id: string;
@@ -19,117 +15,72 @@ interface Props {
   compact?: boolean;
 }
 
-const SEVERITY_ICON = {
-  low:      Info,
-  medium:   AlertCircle,
-  high:     AlertTriangle,
-  critical: AlertTriangle,
+const SEV_CFG = {
+  critical: { ...KPI_COLORS.red,    Icon: AlertTriangle },
+  high:     { ...KPI_COLORS.orange, Icon: AlertTriangle },
+  medium:   { ...KPI_COLORS.yellow, Icon: AlertCircle   },
+  low:      { ...KPI_COLORS.green,  Icon: Info          },
 };
 
 export default function AnomalyCard({
   title, explanation, severity, metricLabel, zScore, timestamp, affectedMrr, compact = false,
 }: Props) {
-  const dotCls = severityDotColor(severity);
-  const textCls = severityColor(severity);
-  const Icon = SEVERITY_ICON[severity];
-
-  const bgColor = {
-    low: "color-mix(in oklab, var(--success-soft) 44%, transparent)",
-    medium: "color-mix(in oklab, var(--warning-soft) 44%, transparent)",
-    high: "rgba(170, 124, 83, 0.13)",
-    critical: "color-mix(in oklab, var(--danger-soft) 52%, transparent)",
-  }[severity];
-
-  const borderColor = {
-    low: "color-mix(in oklab, var(--success) 24%, var(--border))",
-    medium: "color-mix(in oklab, var(--warning) 26%, var(--border))",
-    high: "rgba(170, 124, 83, 0.34)",
-    critical: "color-mix(in oklab, var(--danger) 28%, var(--border))",
-  }[severity];
+  const s = SEV_CFG[severity];
+  const { Icon } = s;
 
   return (
-    <div style={{
-      background: bgColor,
-      border: `1px solid ${borderColor}`,
-      borderRadius: 12,
-      padding: compact ? "10px 12px" : "14px 16px",
-      display: "flex",
-      gap: 10,
-    }}>
-      <div style={{ paddingTop: 2, flexShrink: 0 }}>
-        <span style={{ width: 8, height: 8, borderRadius: "50%", display: "block" }} className={dotCls} />
+    <div style={{ padding: "14px 16px", borderRadius: 14, background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
+      {/* Header: icon + title + timestamp */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+        <span style={{
+          width: 34, height: 34, borderRadius: "50%",
+          background: s.bg, border: `1.5px solid ${s.text}22`,
+          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+        }}>
+          <Icon size={15} color={s.text} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.3 }}>{title}</p>
+          <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: s.text }}>
+            {metricLabel}
+          </span>
+        </div>
+        <span style={{ fontSize: 10.5, color: "var(--text-muted)", whiteSpace: "nowrap", flexShrink: 0 }}>{timestamp}</span>
       </div>
 
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-          <div>
-            <span style={{
-              fontSize: 9.5,
-              fontWeight: 700,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: textCls,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-            }}>
-              <Icon size={11} />
-              {metricLabel}
-            </span>
-            <p style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "var(--text-primary)",
-              margin: "3px 0 0",
-              lineHeight: 1.35,
-            }}>
-              {title}
-            </p>
-          </div>
-          <span style={{ fontSize: 10.5, color: "var(--text-muted)", whiteSpace: "nowrap", flexShrink: 0 }}>
-            {timestamp}
-          </span>
-        </div>
+      {/* Explanation */}
+      {!compact && (
+        <p style={{ fontSize: 12.5, color: "var(--text-secondary)", margin: "0 0 10px", lineHeight: 1.6 }}>
+          {explanation}
+        </p>
+      )}
 
-        {!compact && (
-          <p style={{
-            fontSize: 12,
-            color: "var(--text-secondary)",
-            marginTop: 6,
-            lineHeight: 1.55,
-          }}>
-            {explanation}
-          </p>
+      {/* Footer: badges + link */}
+      <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+        <span style={{
+          fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
+          background: s.text, color: severity === "medium" || severity === "low" ? "#1a1a1a" : "white",
+          letterSpacing: "0.06em", textTransform: "uppercase" as const,
+        }}>
+          {severity}
+        </span>
+        <span style={{
+          fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 400,
+          color: "var(--text-muted)", padding: "2px 0",
+        }}>
+          z={zScore.toFixed(1)}σ
+        </span>
+        {affectedMrr !== undefined && (
+          <span style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+            {affectedMrr > 0
+              ? <TrendingDown size={11} color={s.text} />
+              : <TrendingUp size={11} color={KPI_COLORS.green.text} />}
+            {formatCurrency(Math.abs(affectedMrr))} MRR
+          </span>
         )}
-
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: compact ? 5 : 9, flexWrap: "wrap" }}>
-          <span style={{
-            fontSize: 11,
-            fontFamily: "var(--font-mono)",
-            color: textCls,
-            background: "rgba(255,255,255,0.12)",
-            padding: "2px 7px",
-            borderRadius: 6,
-            border: `1px solid ${borderColor}`,
-          }}>
-            z={zScore.toFixed(1)} sigma
-          </span>
-          {affectedMrr !== undefined && (
-            <span style={{ fontSize: 11, color: "var(--text-secondary)", display: "inline-flex", alignItems: "center", gap: 4 }}>
-              {affectedMrr > 0 ? <TrendingDown size={12} color="var(--danger)" /> : <TrendingUp size={12} color="var(--success)" />}
-              {formatCurrency(Math.abs(affectedMrr))} MRR
-            </span>
-          )}
-          <span style={{
-            fontSize: 10.5,
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
-            color: textCls,
-          }}>
-            {severity}
-          </span>
-        </div>
+        <Link href="/chat" style={{ fontSize: 12.5, fontWeight: 400, color: "var(--text-primary)", textDecoration: "none", marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4 }}>
+          Investigate in Chat <ArrowRight size={11} />
+        </Link>
       </div>
     </div>
   );

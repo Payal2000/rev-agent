@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { METRICS_SUMMARY } from "@/lib/mock-data"
+import { KPI_COLORS } from "@/lib/kpi-colors"
 
 function formatMrr(value: number) {
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`
@@ -22,7 +23,7 @@ export function SectionCards({ inner }: { inner?: boolean } = {}) {
   return (
     <div className={`grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4 ${inner ? "px-4 pb-5 lg:px-5" : "px-4 lg:px-6"}`}>
       {/* MRR */}
-      <Card className="@container/card rounded-2xl shadow-sm bg-[#fdeece] border-0 dark:bg-white/5 dark:border-white/10">
+      <Card className="@container/card rounded-2xl shadow-sm border-0 dark:bg-white/5 dark:border-white/10" style={{ background: KPI_COLORS.amber.bg }}>
         <CardHeader>
           <CardDescription>Monthly Recurring Revenue</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
@@ -47,7 +48,7 @@ export function SectionCards({ inner }: { inner?: boolean } = {}) {
       </Card>
 
       {/* Subscribers */}
-      <Card className="@container/card rounded-2xl shadow-sm bg-[#e0e6ff] border-0 dark:bg-white/5 dark:border-white/10">
+      <Card className="@container/card rounded-2xl shadow-sm border-0 dark:bg-white/5 dark:border-white/10" style={{ background: KPI_COLORS.blue.bg }}>
         <CardHeader>
           <CardDescription>Active Subscribers</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
@@ -72,7 +73,7 @@ export function SectionCards({ inner }: { inner?: boolean } = {}) {
       </Card>
 
       {/* NRR */}
-      <Card className="@container/card rounded-2xl shadow-sm bg-[#d8f2e6] border-0 dark:bg-white/5 dark:border-white/10">
+      <Card className="@container/card rounded-2xl shadow-sm border-0 dark:bg-white/5 dark:border-white/10" style={{ background: KPI_COLORS.green.bg }}>
         <CardHeader>
           <CardDescription>Net Revenue Retention</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
@@ -96,7 +97,7 @@ export function SectionCards({ inner }: { inner?: boolean } = {}) {
       </Card>
 
       {/* Churn Rate */}
-      <Card className="@container/card rounded-2xl shadow-sm bg-[#e6e1f5] border-0 dark:bg-white/5 dark:border-white/10">
+      <Card className="@container/card rounded-2xl shadow-sm border-0 dark:bg-white/5 dark:border-white/10" style={{ background: KPI_COLORS.purple.bg }}>
         <CardHeader>
           <CardDescription>Monthly Churn Rate</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">

@@ -119,8 +119,8 @@ function riskLabel(score: number) {
 }
 
 function tierColor(tier: string) {
-  if (tier === "Enterprise") return "text-cyan-500"
-  if (tier === "Growth") return "text-blue-500"
+  if (tier === "Enterprise") return "text-violet-400"
+  if (tier === "Growth") return "text-sky-400"
   return "text-slate-400"
 }
 
@@ -211,7 +211,7 @@ const columns: ColumnDef<Account>[] = [
     header: "Est. Churn",
     cell: ({ row }) => {
       const d = row.original.daysToChurn
-      const color = d <= 14 ? "text-red-500" : d <= 28 ? "text-amber-500" : "text-muted-foreground"
+      const color = d <= 14 ? "text-red-400" : d <= 28 ? "text-amber-400" : "text-muted-foreground"
       return (
         <span className={`text-sm tabular-nums ${color}`}>
           {d}d
@@ -418,7 +418,7 @@ export function DataTable({ data: initialData }: { data: Account[] }) {
         value={activeTab}
         className="relative flex flex-col gap-4 px-4 lg:px-6 pb-4"
       >
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="overflow-x-auto">
           <DndContext
             collisionDetection={closestCenter}
             modifiers={[restrictToVerticalAxis]}
@@ -427,7 +427,7 @@ export function DataTable({ data: initialData }: { data: Account[] }) {
             id={sortableId}
           >
             <Table>
-              <TableHeader className="sticky top-0 z-10 bg-muted">
+              <TableHeader className="sticky top-0 z-10">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
@@ -547,7 +547,7 @@ function TableCellViewer({ item }: { item: Account }) {
             <div className="flex items-center gap-3">
               <div className="h-2 flex-1 rounded-full bg-muted overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-red-500"
+                  className="h-full rounded-full bg-red-300"
                   style={{ width: `${item.riskScore}%` }}
                 />
               </div>
@@ -575,7 +575,7 @@ function TableCellViewer({ item }: { item: Account }) {
             </div>
             <div className="rounded-lg border p-3">
               <p className="text-xs text-muted-foreground mb-1">Est. Days to Churn</p>
-              <p className={`font-semibold tabular-nums ${item.daysToChurn <= 14 ? "text-red-500" : item.daysToChurn <= 28 ? "text-amber-500" : ""}`}>
+              <p className={`font-semibold tabular-nums ${item.daysToChurn <= 14 ? "text-red-400" : item.daysToChurn <= 28 ? "text-amber-400" : ""}`}>
                 {item.daysToChurn} days
               </p>
             </div>

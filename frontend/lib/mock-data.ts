@@ -112,6 +112,66 @@ export const FORECAST_DATA = [
   { month: "Apr",  actual: null,   p50: 456100, p80lo: 440200, p80hi: 472000, p95lo: 424600, p95hi: 487600 },
 ];
 
+// Weekly AI digest
+export const WEEKLY_DIGEST = {
+  generatedAt: "Mar 5, 2026 · 9:00 AM",
+  highlights: [
+    { type: "info" as const,     title: "User Behavior Trends",  text: "Increased user engagement observed consistently during identified peak activity hours." },
+    { type: "warning" as const,  title: "Risk & Anomaly Alerts", text: "AI detects unusual behavior patterns and alert teams for immediate review." },
+    { type: "positive" as const, title: "Growth Suggestions",    text: "AI recommends actionable improvements to increase user engagement, retention, and overall growth." },
+  ],
+};
+
+// Revenue signals
+export const REVENUE_SIGNALS = [
+  { label: "MRR Growth MoM",  value: "+$13.3K", delta: "+3.2%",       trend: "up" as const,      note: "Strongest since Sep 2025", colorKey: "amber"  },
+  { label: "Expansion MRR",   value: "$18.2K",  delta: "+6.4%",       trend: "up" as const,      note: "All-time high",            colorKey: "pink"   },
+  { label: "Contraction MRR", value: "$4.1K",   delta: "+32%",        trend: "down" as const,    note: "Spike from rollbacks",     colorKey: "orange" },
+  { label: "ARR Concentration",value: "34%",    delta: "top 10 accts",trend: "neutral" as const, note: "Risk: moderate",           colorKey: "sky"    },
+];
+
+// Cohort retention (months since signup → retention %)
+export const COHORT_RETENTION = [
+  { cohort: "Aug 2025", m1: 94, m2: 88, m3: 82, m4: 76, m5: 71 },
+  { cohort: "Sep 2025", m1: 96, m2: 90, m3: 85, m4: 79, m5: null },
+  { cohort: "Oct 2025", m1: 95, m2: 89, m3: 83, m4: null, m5: null },
+  { cohort: "Nov 2025", m1: 97, m2: 91, m3: null, m4: null, m5: null },
+  { cohort: "Dec 2025", m1: 98, m2: null, m3: null, m4: null, m5: null },
+];
+
+// Early churn signals
+export const CHURN_SIGNALS = [
+  { signal: "Login frequency drop >50%", accounts: 14, mrrAtRisk: 18400, severity: "critical" as const },
+  { signal: "No activity in 14+ days", accounts: 22, mrrAtRisk: 12600, severity: "high" as const },
+  { signal: "Support tickets spike", accounts: 9, mrrAtRisk: 8200, severity: "high" as const },
+  { signal: "Feature usage below baseline", accounts: 31, mrrAtRisk: 21000, severity: "medium" as const },
+  { signal: "Contract renewal within 30d", accounts: 7, mrrAtRisk: 29400, severity: "medium" as const },
+];
+
+// Growth / upsell opportunities
+export const GROWTH_OPPORTUNITIES = [
+  { id: "g1", name: "Apex Ventures", tier: "Growth", mrr: 890, signal: "API usage at 94% of limit", potential: "+$560/mo", readiness: 92 },
+  { id: "g2", name: "Kestrel Media", tier: "Starter", mrr: 149, signal: "5 team invites sent this week", potential: "+$222/mo", readiness: 87 },
+  { id: "g3", name: "Orion Fintech", tier: "Growth", mrr: 740, signal: "Exported 12 reports in 30d", potential: "+$420/mo", readiness: 81 },
+  { id: "g4", name: "Solaris Health", tier: "Starter", mrr: 149, signal: "Daily active usage for 28/30 days", potential: "+$222/mo", readiness: 76 },
+  { id: "g5", name: "Nimbus Cloud", tier: "Growth", mrr: 890, signal: "Requested Enterprise feature 3x", potential: "+$270/mo", readiness: 71 },
+];
+
+// Segment health
+export const SEGMENT_HEALTH = [
+  { tier: "Enterprise", health: 64, accounts: 128, mrr: 148330, churnRate: 4.1, nrr: 112, trend: "down" as const, color: "#6c5ce7" },
+  { tier: "Growth",     health: 78, accounts: 514, mrr: 190710, churnRate: 1.8, nrr: 110, trend: "stable" as const, color: "#0ea5e9" },
+  { tier: "Starter",    health: 85, accounts: 642, mrr: 84760,  churnRate: 1.2, nrr: 104, trend: "up" as const, color: "#10b981" },
+];
+
+// Operational alerts
+export const OPERATIONAL_ALERTS = [
+  { id: "o1", label: "Failed payments",       value: "14 invoices", sub: "$1,840 MRR at risk",      status: "critical" as const },
+  { id: "o2", label: "Expired cards",         value: "8 accounts",  sub: "Auto-retry scheduled",    status: "warning" as const },
+  { id: "o3", label: "Trial-to-paid drop",    value: "18.4% CVR",   sub: "Down from 22.1% last mo", status: "warning" as const },
+  { id: "o4", label: "Dunning in progress",   value: "6 accounts",  sub: "$3,120 recoverable MRR",  status: "info" as const },
+];
+
 // At-risk accounts
 export const AT_RISK_ACCOUNTS = [
   { id: "acc1", name: "Meridian Analytics",    tier: "Enterprise", mrr: 4200, riskScore: 94, daysToChurn: 12, signals: ["Usage -68%", "No login 21d"] },
