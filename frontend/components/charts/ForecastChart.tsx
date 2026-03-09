@@ -7,7 +7,15 @@ import {
 import { FORECAST_DATA } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/utils";
 
-type ForecastPoint = (typeof FORECAST_DATA)[number];
+export type ForecastPoint = {
+  month: string;
+  actual: number | null;
+  p50: number | null;
+  p80lo: number | null;
+  p80hi: number | null;
+  p95lo: number | null;
+  p95hi: number | null;
+};
 
 interface ForecastTooltipProps {
   active?: boolean;
@@ -46,11 +54,15 @@ const CustomTooltip = ({ active, payload, label }: ForecastTooltipProps) => {
   );
 };
 
-export default function ForecastChart() {
+export default function ForecastChart({ chartData }: { chartData?: ForecastPoint[] }) {
+  const source = chartData ?? FORECAST_DATA;
+  // Find the last point with an actual value to use as the transition boundary
+  const lastActualIdx = source.reduce((acc, d, i) => (d.actual != null ? i : acc), -1);
+
   // Build combined data where the transition point has both actual and p50
-  const data = FORECAST_DATA.map((d, i) => {
+  const data = source.map((d, i) => {
     // At the boundary (last actual), carry the p50 as starting point for continuity
-    if (i === 3) {
+    if (i === lastActualIdx) {
       return { ...d, p50: d.actual, p80lo: d.actual, p80hi: d.actual, p95lo: d.actual, p95hi: d.actual };
     }
     return d;

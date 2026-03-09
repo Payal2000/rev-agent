@@ -115,15 +115,16 @@ def build_graph(checkpointer: AsyncPostgresSaver) -> StateGraph:
 # ── Singleton graph instance ──────────────────────────────────────────────────
 
 _graph = None
+_checkpointer_cm = None  # Keep the context manager alive
 
 
 async def get_graph():
-    global _graph
+    global _graph, _checkpointer_cm
     if _graph is None:
-        checkpointer = await AsyncPostgresSaver.from_conn_string(
-            # AsyncPostgresSaver needs sync-style connection string
-            settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
-        )
+        conn_str = settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
+        # from_conn_string is an asynccontextmanager — enter it and keep the CM alive
+        _checkpointer_cm = AsyncPostgresSaver.from_conn_string(conn_str)
+        checkpointer = await _checkpointer_cm.__aenter__()
         await checkpointer.setup()
         _graph = build_graph(checkpointer)
         logger.info("✓ LangGraph compiled with PostgreSQL checkpointer")

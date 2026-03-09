@@ -11,6 +11,7 @@ import {
   SEGMENT_HEALTH,
   OPERATIONAL_ALERTS,
 } from "@/lib/mock-data";
+import { useLiveData } from "@/lib/hooks";
 import AnomalyCard from "@/components/ui/AnomalyCard";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Sparkles, TrendingUp, TrendingDown, Minus, ArrowUpRight, Activity, AlertTriangle, AlertCircle, Lightbulb, Info, Building2, Users, Zap } from "lucide-react";
@@ -112,14 +113,16 @@ function RetentionCell({ value }: { value: number | null }) {
 
 export default function InsightsPage() {
   const [filter, setFilter] = useState<Severity>("all");
+  const { data: anomalies } = useLiveData("/api/insights/anomalies", ANOMALIES);
+  const { data: signals } = useLiveData("/api/insights/signals", REVENUE_SIGNALS);
 
-  const filtered = filter === "all" ? ANOMALIES : ANOMALIES.filter(a => a.severity === filter);
+  const filtered = filter === "all" ? anomalies : anomalies.filter((a: typeof ANOMALIES[0]) => a.severity === filter);
   const counts = {
-    all: ANOMALIES.length,
-    critical: ANOMALIES.filter(a => a.severity === "critical").length,
-    high: ANOMALIES.filter(a => a.severity === "high").length,
-    medium: ANOMALIES.filter(a => a.severity === "medium").length,
-    low: ANOMALIES.filter(a => a.severity === "low").length,
+    all: anomalies.length,
+    critical: anomalies.filter((a: typeof ANOMALIES[0]) => a.severity === "critical").length,
+    high: anomalies.filter((a: typeof ANOMALIES[0]) => a.severity === "high").length,
+    medium: anomalies.filter((a: typeof ANOMALIES[0]) => a.severity === "medium").length,
+    low: anomalies.filter((a: typeof ANOMALIES[0]) => a.severity === "low").length,
   };
 
   const FILTERS: { key: Severity; label: string; activeBg: string; activeBorder: string; activeText: string; dot: string }[] = [
@@ -138,7 +141,7 @@ export default function InsightsPage() {
         <h1 className="text-3xl font-bold tracking-tight text-foreground">Insights</h1>
         <p className="mt-1 text-sm text-muted-foreground">AI-powered revenue intelligence · Last 30 days · Powered by Insights Agent</p>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 pt-5">
-          {REVENUE_SIGNALS.map(s => {
+          {signals.map((s: typeof REVENUE_SIGNALS[0]) => {
             const c = KPI_COLORS[s.colorKey as keyof typeof KPI_COLORS];
             return (
               <Card key={s.label} className="@container/card rounded-2xl shadow-sm border-0 dark:bg-white/5 dark:border-white/10" style={{ background: c.bg }}>

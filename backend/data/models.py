@@ -73,7 +73,7 @@ class Subscription(Base):
     canceled_at = Column(DateTime(timezone=True), nullable=True)
     cancel_reason = Column(String(255), nullable=True)
     trial_end = Column(DateTime(timezone=True), nullable=True)
-    metadata = Column(JSONB, default={})
+    extra = Column("metadata", JSONB, default={})
     created_at = Column(DateTime(timezone=True), server_default=text("NOW()"))
     updated_at = Column(DateTime(timezone=True), server_default=text("NOW()"), onupdate=datetime.utcnow)
 
@@ -124,7 +124,7 @@ class SubscriptionEvent(Base):
     new_mrr = Column(Float, default=0.0)
     mrr_delta = Column(Float, default=0.0)
     timestamp = Column(DateTime(timezone=True), server_default=text("NOW()"))
-    metadata = Column(JSONB, default={})
+    extra = Column("metadata", JSONB, default={})
 
     subscription = relationship("Subscription", back_populates="events")
 
@@ -216,7 +216,7 @@ class AgentMemory(Base):
     content_text = Column(Text, nullable=False)
     content_embedding = Column(Vector(1536), nullable=True)
     outcome = Column(String(50), nullable=True)  # successful / failed / pending
-    metadata = Column(JSONB, default={})
+    extra = Column("metadata", JSONB, default={})
     created_at = Column(DateTime(timezone=True), server_default=text("NOW()"))
 
     __table_args__ = (
@@ -233,7 +233,7 @@ class SchemaEmbedding(Base):
     table_name = Column(String(100), nullable=False)
     description = Column(Text, nullable=False)  # full business-context doc
     embedding = Column(Vector(1536), nullable=False)
-    metadata = Column(JSONB, default={})
+    extra = Column("metadata", JSONB, default={})
     created_at = Column(DateTime(timezone=True), server_default=text("NOW()"))
 
     __table_args__ = (

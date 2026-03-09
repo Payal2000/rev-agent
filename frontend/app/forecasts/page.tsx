@@ -1,13 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { AT_RISK_ACCOUNTS } from "@/lib/mock-data";
+import { AT_RISK_ACCOUNTS, FORECAST_DATA } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/utils";
 import { KPI_COLORS } from "@/lib/kpi-colors";
 import Link from "next/link";
 import { ArrowRight, TrendingUp } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardAction, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useLiveData } from "@/lib/hooks";
+import type { ForecastPoint } from "@/components/charts/ForecastChart";
 
 const ForecastChart = dynamic(() => import("@/components/charts/ForecastChart"), { ssr: false });
 
@@ -16,7 +18,27 @@ const RISK_COLOR = (score: number) =>
 
 const CARD = "bg-white/65 backdrop-blur-sm dark:bg-white/6 border-[3px] border-white dark:border-white/10 shadow-sm rounded-2xl";
 
+type ForecastApiResponse = { data: ForecastPoint[]; stats: { p30: number; p60: number; p90: number; ci80: { low: number; high: number }; currentMrr: number; trend: string } | null };
+
 export default function ForecastsPage() {
+  const { data: forecast } = useLiveData<ForecastApiResponse>("/api/forecast/mrr", { data: FORECAST_DATA, stats: null });
+  const { data: atRisk } = useLiveData("/api/metrics/at-risk-accounts", AT_RISK_ACCOUNTS);
+
+  const stats = forecast.stats;
+  const currentMrr = stats?.currentMrr ?? 423800;
+
+  const kpiCards = stats
+    ? [
+        { label: "30-Day MRR", value: stats.p30, ci: `${formatCurrency(stats.ci80.low, true)} – ${formatCurrency(stats.ci80.high, true)}`, trend: `${((stats.p30 - currentMrr) / currentMrr * 100).toFixed(1)}%`, kpiColor: KPI_COLORS.blue },
+        { label: "60-Day MRR", value: stats.p60, ci: `${formatCurrency(stats.ci80.low, true)} – ${formatCurrency(stats.ci80.high, true)}`, trend: `${((stats.p60 - currentMrr) / currentMrr * 100).toFixed(1)}%`, kpiColor: KPI_COLORS.yellow },
+        { label: "90-Day MRR", value: stats.p90, ci: `${formatCurrency(stats.ci80.low, true)} – ${formatCurrency(stats.ci80.high, true)}`, trend: `${((stats.p90 - currentMrr) / currentMrr * 100).toFixed(1)}%`, kpiColor: KPI_COLORS.gray },
+      ]
+    : [
+        { label: "30-Day MRR", value: 434200, ci: "$426.8K – $441.6K", trend: "+2.5%", kpiColor: KPI_COLORS.blue },
+        { label: "60-Day MRR", value: 444800, ci: "$433.2K – $456.4K", trend: "+4.9%", kpiColor: KPI_COLORS.yellow },
+        { label: "90-Day MRR", value: 456100, ci: "$440.2K – $472.0K", trend: "+7.6%", kpiColor: KPI_COLORS.gray },
+      ];
+
   return (
     <div className="flex flex-col gap-4 px-4 py-4 lg:px-6 lg:py-6 w-full">
       {/* Header */}
@@ -25,11 +47,7 @@ export default function ForecastsPage() {
         <p className="page-subtitle">90-day MRR projection · Holt-Winters + confidence intervals</p>
         {/* KPI cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mt-5">
-          {[
-            { label: "30-Day MRR", value: 434200, ci: "$426.8K – $441.6K", trend: "+2.5%", kpiColor: KPI_COLORS.blue },
-            { label: "60-Day MRR", value: 444800, ci: "$433.2K – $456.4K", trend: "+4.9%", kpiColor: KPI_COLORS.yellow },
-            { label: "90-Day MRR", value: 456100, ci: "$440.2K – $472.0K", trend: "+7.6%", kpiColor: KPI_COLORS.gray },
-          ].map((p) => (
+          {kpiCards.map((p) => (
             <Card key={p.label} className="@container/card rounded-2xl shadow-sm border-0 dark:bg-white/5 dark:border-white/10" style={{ background: p.kpiColor.bg }}>
               <CardHeader>
                 <CardDescription>{p.label}</CardDescription>
@@ -74,7 +92,7 @@ export default function ForecastsPage() {
             ))}
           </div>
         </div>
-        <ForecastChart />
+        <ForecastChart chartData={forecast.data} />
       </div>
 
       {/* At-risk accounts */}
@@ -82,7 +100,7 @@ export default function ForecastsPage() {
         <div className="section-header">
           <div>
             <h2 className="section-title">At-Risk Accounts</h2>
-            <p className="section-subtitle">ML churn prediction model · {AT_RISK_ACCOUNTS.length} accounts flagged</p>
+            <p className="section-subtitle">ML churn prediction model · {atRisk.length} accounts flagged</p>
           </div>
           <Link href="/chat" className="inline-link" style={{ flexShrink: 0 }}>
             Get recommendations <ArrowRight size={10} />
@@ -101,20 +119,20 @@ export default function ForecastsPage() {
               </tr>
             </thead>
             <tbody>
-              {AT_RISK_ACCOUNTS.map((acc, i) => (
+              {atRisk.map((acc, i) => (
                 <tr key={acc.id}>
-                  <td style={{ padding: "17px 20px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)", borderBottom: i < AT_RISK_ACCOUNTS.length - 1 ? "1px solid #ebebeb" : "none" }}>
+                  <td style={{ padding: "17px 20px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)", borderBottom: i < atRisk.length - 1 ? "1px solid #ebebeb" : "none" }}>
                     {acc.name}
                   </td>
-                  <td style={{ padding: "17px 20px", borderBottom: i < AT_RISK_ACCOUNTS.length - 1 ? "1px solid #ebebeb" : "none" }}>
+                  <td style={{ padding: "17px 20px", borderBottom: i < atRisk.length - 1 ? "1px solid #ebebeb" : "none" }}>
                     <span style={{ fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 999, background: acc.tier === "Enterprise" ? KPI_COLORS.sky.bg : KPI_COLORS.purple.bg, color: acc.tier === "Enterprise" ? KPI_COLORS.sky.text : KPI_COLORS.purple.text, border: `1px solid ${acc.tier === "Enterprise" ? KPI_COLORS.sky.text : KPI_COLORS.purple.text}33` }}>
                       {acc.tier}
                     </span>
                   </td>
-                  <td style={{ padding: "17px 20px", fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-primary)", fontWeight: 600, borderBottom: i < AT_RISK_ACCOUNTS.length - 1 ? "1px solid #ebebeb" : "none" }}>
+                  <td style={{ padding: "17px 20px", fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-primary)", fontWeight: 600, borderBottom: i < atRisk.length - 1 ? "1px solid #ebebeb" : "none" }}>
                     {formatCurrency(acc.mrr)}
                   </td>
-                  <td style={{ padding: "17px 20px", borderBottom: i < AT_RISK_ACCOUNTS.length - 1 ? "1px solid #ebebeb" : "none" }}>
+                  <td style={{ padding: "17px 20px", borderBottom: i < atRisk.length - 1 ? "1px solid #ebebeb" : "none" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                       <div style={{ width: 54, height: 4, borderRadius: 2, background: "var(--bg-elevated)", overflow: "hidden" }}>
                         <div style={{ width: `${acc.riskScore}%`, height: "100%", background: RISK_COLOR(acc.riskScore), borderRadius: 2 }} />
@@ -124,10 +142,10 @@ export default function ForecastsPage() {
                       </span>
                     </div>
                   </td>
-                  <td style={{ padding: "17px 20px", fontSize: 13, color: acc.daysToChurn < 20 ? "var(--danger)" : "var(--text-secondary)", fontFamily: "var(--font-mono)", borderBottom: i < AT_RISK_ACCOUNTS.length - 1 ? "1px solid #ebebeb" : "none" }}>
+                  <td style={{ padding: "17px 20px", fontSize: 13, color: acc.daysToChurn < 20 ? "var(--danger)" : "var(--text-secondary)", fontFamily: "var(--font-mono)", borderBottom: i < atRisk.length - 1 ? "1px solid #ebebeb" : "none" }}>
                     {acc.daysToChurn}d
                   </td>
-                  <td style={{ padding: "17px 20px", borderBottom: i < AT_RISK_ACCOUNTS.length - 1 ? "1px solid #ebebeb" : "none" }}>
+                  <td style={{ padding: "17px 20px", borderBottom: i < atRisk.length - 1 ? "1px solid #ebebeb" : "none" }}>
                     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                       {acc.signals.map(s => (
                         <span key={s} style={{ fontSize: 11, padding: "2px 7px", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text-muted)" }}>
@@ -146,13 +164,13 @@ export default function ForecastsPage() {
           <span style={{ color: "var(--text-muted)" }}>
             Total MRR at risk:&nbsp;
             <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--danger)" }}>
-              {formatCurrency(AT_RISK_ACCOUNTS.reduce((s, a) => s + a.mrr, 0))}
+              {formatCurrency(atRisk.reduce((s, a) => s + a.mrr, 0))}
             </span>
           </span>
           <span style={{ color: "var(--text-muted)" }}>
             ARR at risk:&nbsp;
             <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--warning)" }}>
-              {formatCurrency(AT_RISK_ACCOUNTS.reduce((s, a) => s + a.mrr, 0) * 12, true)}
+              {formatCurrency(atRisk.reduce((s, a) => s + a.mrr, 0) * 12, true)}
             </span>
           </span>
         </div>

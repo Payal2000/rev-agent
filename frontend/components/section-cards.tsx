@@ -1,3 +1,5 @@
+"use client"
+
 import { IconTrendingDown, IconTrendingUp } from "@tabler/icons-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +13,7 @@ import {
 } from "@/components/ui/card"
 import { METRICS_SUMMARY } from "@/lib/mock-data"
 import { KPI_COLORS } from "@/lib/kpi-colors"
+import { useLiveData } from "@/lib/hooks"
 
 function formatMrr(value: number) {
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`
@@ -18,7 +21,8 @@ function formatMrr(value: number) {
 }
 
 export function SectionCards({ inner }: { inner?: boolean } = {}) {
-  const churnUp = METRICS_SUMMARY.churnRate > METRICS_SUMMARY.churnRatePrev
+  const { data: metrics } = useLiveData("/api/metrics/summary", METRICS_SUMMARY)
+  const churnUp = metrics.churnRate > metrics.churnRatePrev
 
   return (
     <div className={`grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4 ${inner ? "px-4 pb-5 lg:px-5" : "px-4 lg:px-6"}`}>
@@ -27,22 +31,22 @@ export function SectionCards({ inner }: { inner?: boolean } = {}) {
         <CardHeader>
           <CardDescription>Monthly Recurring Revenue</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {formatMrr(METRICS_SUMMARY.mrr)}
+            {formatMrr(metrics.mrr)}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <IconTrendingUp />
-              +{METRICS_SUMMARY.mrrDelta}%
+              +{metrics.mrrDelta}%
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Up from {formatMrr(METRICS_SUMMARY.mrrPrev)} last month{" "}
+            Up from {formatMrr(metrics.mrrPrev)} last month{" "}
             <IconTrendingUp className="size-4" />
           </div>
           <div className="text-muted-foreground">
-            ARR: {formatMrr(METRICS_SUMMARY.arr)}
+            ARR: {formatMrr(metrics.arr)}
           </div>
         </CardFooter>
       </Card>
@@ -52,22 +56,22 @@ export function SectionCards({ inner }: { inner?: boolean } = {}) {
         <CardHeader>
           <CardDescription>Active Subscribers</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {METRICS_SUMMARY.subscribers.toLocaleString()}
+            {metrics.subscribers.toLocaleString()}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <IconTrendingDown />
-              {METRICS_SUMMARY.subscribersDelta}
+              {metrics.subscribersDelta}
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Net {Math.abs(METRICS_SUMMARY.subscribersDelta)} churned this month{" "}
+            Net {Math.abs(metrics.subscribersDelta)} churned this month{" "}
             <IconTrendingDown className="size-4" />
           </div>
           <div className="text-muted-foreground">
-            ARPU: ${METRICS_SUMMARY.arpu}/mo
+            ARPU: ${metrics.arpu}/mo
           </div>
         </CardFooter>
       </Card>
@@ -77,12 +81,12 @@ export function SectionCards({ inner }: { inner?: boolean } = {}) {
         <CardHeader>
           <CardDescription>Net Revenue Retention</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {METRICS_SUMMARY.nrr}%
+            {metrics.nrr}%
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <IconTrendingUp />
-              +{(METRICS_SUMMARY.nrr - 100).toFixed(1)}%
+              +{(metrics.nrr - 100).toFixed(1)}%
             </Badge>
           </CardAction>
         </CardHeader>
@@ -91,7 +95,7 @@ export function SectionCards({ inner }: { inner?: boolean } = {}) {
             Expansion driving growth <IconTrendingUp className="size-4" />
           </div>
           <div className="text-muted-foreground">
-            Expansion MRR: +${METRICS_SUMMARY.expansionMrr.toLocaleString()}
+            Expansion MRR: +${metrics.expansionMrr.toLocaleString()}
           </div>
         </CardFooter>
       </Card>
@@ -101,13 +105,13 @@ export function SectionCards({ inner }: { inner?: boolean } = {}) {
         <CardHeader>
           <CardDescription>Monthly Churn Rate</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {METRICS_SUMMARY.churnRate}%
+            {metrics.churnRate}%
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               {churnUp ? <IconTrendingUp /> : <IconTrendingDown />}
               {churnUp ? "+" : ""}
-              {(METRICS_SUMMARY.churnRate - METRICS_SUMMARY.churnRatePrev).toFixed(1)}%
+              {(metrics.churnRate - metrics.churnRatePrev).toFixed(1)}%
             </Badge>
           </CardAction>
         </CardHeader>
@@ -121,7 +125,7 @@ export function SectionCards({ inner }: { inner?: boolean } = {}) {
             )}
           </div>
           <div className="text-muted-foreground">
-            Churned MRR: ${METRICS_SUMMARY.churnedMrr.toLocaleString()}
+            Churned MRR: ${metrics.churnedMrr.toLocaleString()}
           </div>
         </CardFooter>
       </Card>

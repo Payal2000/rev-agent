@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 BLOCKED_STATEMENT_TYPES = {
     sqlglot.exp.Insert, sqlglot.exp.Update, sqlglot.exp.Delete,
     sqlglot.exp.Drop, sqlglot.exp.Alter, sqlglot.exp.Create,
-    sqlglot.exp.Grant, sqlglot.exp.Revoke, sqlglot.exp.Truncate,
+    sqlglot.exp.Grant, sqlglot.exp.Revoke, sqlglot.exp.TruncateTable,
     sqlglot.exp.Transaction, sqlglot.exp.Commit, sqlglot.exp.Rollback,
 }
 
