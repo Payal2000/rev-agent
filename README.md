@@ -6,6 +6,9 @@ RevAgent lets anyone at a SaaS company query, analyze, forecast, and act on thei
 
 Built with LangGraph · FastAPI · Next.js · PostgreSQL · pgvector · OpenAI GPT-4o
 
+<img width="1700" height="941" alt="Screenshot 2026-03-09 at 7 21 41 PM" src="https://github.com/user-attachments/assets/767b3314-3969-4a46-9ce2-0305038d66be" />
+
+
 
 ## What it does
 
@@ -17,6 +20,9 @@ Built with LangGraph · FastAPI · Next.js · PostgreSQL · pgvector · OpenAI G
 | **Actionable recommendations** | RAG-powered playbook retrieves ranked strategies with estimated revenue impact |
 | **Human-in-the-loop approvals** | Every recommended action requires explicit approval before execution — from the web UI, Slack, or Discord |
 | **Full audit trail** | Every agent decision, SQL query, and approval is logged to PostgreSQL |
+
+<img width="1707" height="944" alt="Screenshot 2026-03-09 at 7 36 41 PM" src="https://github.com/user-attachments/assets/63ebea3c-73d0-4117-abbf-a5994e96f547" />
+
 
 
 
