@@ -3,7 +3,6 @@ import logging
 from typing import Optional
 
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import AIMessage
 
 from config import settings
 from graph.state import RevAgentState
@@ -64,6 +63,10 @@ Critical rules:
 6. Always use DATE_TRUNC for time grouping
 7. Use COALESCE to handle nulls in aggregations
 8. Limit results to reasonable sizes (add LIMIT when appropriate)
+9. NEVER set disambiguation_needed=true. Always generate your best SQL query based on available context.
+   If the question is vague, make a reasonable assumption and generate SQL for the most likely intent.
+10. For follow-up questions like "tell me more", "show details", or references to previous context,
+    use the conversation history provided to determine what data to retrieve.
 
 The tenant_id placeholder is already filled in — use it exactly as shown.
 """
@@ -84,20 +87,31 @@ async def query_agent(state: RevAgentState) -> RevAgentState:
     sql_output = None
     last_error: Optional[str] = None
 
+    # Build conversation history for context (last 3 turns, excluding latest message)
+    history_msgs = []
+    prior_messages = state["messages"][:-1][-6:]  # up to 3 turns before current
+    for msg in prior_messages:
+        cls = msg.__class__.__name__
+        if "HumanMessage" in cls and getattr(msg, "content", ""):
+            history_msgs.append({"role": "user", "content": msg.content})
+        elif "AIMessage" in cls and getattr(msg, "content", ""):
+            history_msgs.append({"role": "assistant", "content": msg.content[:400]})
+
     for attempt in range(3):
         error_context = f"\n\nPrevious SQL failed with error: {last_error}\nPlease fix the SQL." if last_error else ""
 
         system_prompt = SQL_SYSTEM_PROMPT.replace("{tenant_id}", tenant_id)
 
+        messages = [{"role": "system", "content": system_prompt}]
+        messages.extend(history_msgs)
+        messages.append({"role": "user", "content": (
+            f"Database schema context:\n{schema_context}\n\n"
+            f"Current question: {user_question}"
+            f"{error_context}"
+        )})
+
         response = await llm.ainvoke(
-            [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": (
-                    f"Database schema context:\n{schema_context}\n\n"
-                    f"Question: {user_question}"
-                    f"{error_context}"
-                )}
-            ],
+            messages,
             tools=[SQL_GENERATION_TOOL],
             tool_choice={"type": "function", "function": {"name": "generate_sql"}},
         )
@@ -109,13 +123,14 @@ async def query_agent(state: RevAgentState) -> RevAgentState:
 
         sql_output = tool_call["args"]
 
-        # Handle disambiguation
+        # If LLM still marks disambiguation needed despite instructions, treat as error
+        # so _synthesize_response can return a helpful clarifying message
         if sql_output.get("disambiguation_needed"):
             follow_up = sql_output.get("follow_up_question", "Could you clarify your question?")
             return {
                 **state,
-                "messages": state["messages"] + [AIMessage(content=follow_up)],
                 "current_step": current_step + 1,
+                "error": f"CLARIFICATION_NEEDED: {follow_up}",
             }
 
         # Step 3: Safety check + execute
