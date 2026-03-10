@@ -30,6 +30,7 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group"
 import { MRR_TREND } from "@/lib/mock-data"
+import { useLiveData } from "@/lib/hooks"
 
 export const description = "MRR growth components over time"
 
@@ -51,6 +52,7 @@ function formatK(value: number) {
 export function ChartAreaInteractive() {
   const isMobile = useIsMobile()
   const [timeRange, setTimeRange] = React.useState("12m")
+  const { data: mrrTrend } = useLiveData("/api/metrics/mrr-trend", MRR_TREND)
 
   React.useEffect(() => {
     if (isMobile) {
@@ -59,10 +61,10 @@ export function ChartAreaInteractive() {
   }, [isMobile])
 
   const filteredData = React.useMemo(() => {
-    if (timeRange === "3m") return MRR_TREND.slice(-3)
-    if (timeRange === "6m") return MRR_TREND.slice(-6)
-    return MRR_TREND
-  }, [timeRange])
+    if (timeRange === "3m") return mrrTrend.slice(-3)
+    if (timeRange === "6m") return mrrTrend.slice(-6)
+    return mrrTrend
+  }, [timeRange, mrrTrend])
 
   return (
     <Card className="@container/card bg-white/65 backdrop-blur-sm dark:bg-white/6 border-[3px] border-white dark:border-white/10 shadow-sm rounded-2xl">

@@ -1,10 +1,14 @@
+"use client";
+
 import { ChartAreaInteractive } from "@/components/chart-area-interactive"
 import { DataTable } from "@/components/data-table"
 import { SectionCards } from "@/components/section-cards"
-
-import data from "./data.json"
+import { useLiveData } from "@/lib/hooks"
+import { AT_RISK_ACCOUNTS } from "@/lib/mock-data"
 
 export default function Page() {
+  const { data: atRisk } = useLiveData("/api/metrics/at-risk-accounts", AT_RISK_ACCOUNTS)
+
   return (
     <div className="@container/main flex flex-1 flex-col gap-4 py-4 md:gap-5 md:py-6">
       {/* Welcome header + KPI metric cards — one container */}
@@ -22,7 +26,7 @@ export default function Page() {
       </div>
 
       {/* At-risk accounts table */}
-      <DataTable data={data} />
+      <DataTable data={atRisk} />
     </div>
   )
 }
