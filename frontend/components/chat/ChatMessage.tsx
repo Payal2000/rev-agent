@@ -1,9 +1,78 @@
 "use client";
 
-import { ChatMessage as ChatMessageType } from "@/lib/api";
+import { ChatMessage as ChatMessageType, ChartData } from "@/lib/api";
 import StreamingSteps from "@/components/ui/StreamingSteps";
 import ApprovalCard from "@/components/ApprovalCard";
 import { CircleCheck, CircleX, Bot } from "lucide-react";
+import {
+  ResponsiveContainer,
+  LineChart, Line,
+  BarChart, Bar,
+  PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+} from "recharts";
+
+const CHART_COLORS = ["#7c6eaa", "#4e9e8f", "#e07b53", "#5b8dd9", "#c26eb4"];
+
+function formatYAxis(value: number): string {
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`;
+  return String(value);
+}
+
+function InlineChart({ chart }: { chart: ChartData }) {
+  const { chartType, data, xKey, yKeys } = chart;
+
+  if (chartType === "line") {
+    return (
+      <ResponsiveContainer width="100%" height={220}>
+        <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0edf8" />
+          <XAxis dataKey={xKey} tick={{ fontSize: 11 }} tickFormatter={v => String(v).slice(0, 7)} />
+          <YAxis tick={{ fontSize: 11 }} tickFormatter={formatYAxis} width={56} />
+          <Tooltip formatter={(v: number) => formatYAxis(v)} />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          {yKeys.map((k, i) => (
+            <Line key={k} type="monotone" dataKey={k} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} dot={false} />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    );
+  }
+
+  if (chartType === "bar") {
+    return (
+      <ResponsiveContainer width="100%" height={220}>
+        <BarChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0edf8" />
+          <XAxis dataKey={xKey} tick={{ fontSize: 11 }} />
+          <YAxis tick={{ fontSize: 11 }} tickFormatter={formatYAxis} width={56} />
+          <Tooltip formatter={(v: number) => formatYAxis(v)} />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          {yKeys.map((k, i) => (
+            <Bar key={k} dataKey={k} fill={CHART_COLORS[i % CHART_COLORS.length]} radius={[3, 3, 0, 0]} />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  }
+
+  if (chartType === "pie") {
+    const yKey = yKeys[0];
+    return (
+      <ResponsiveContainer width="100%" height={220}>
+        <PieChart>
+          <Pie data={data} dataKey={yKey} nameKey={xKey} cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+            {data.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+          </Pie>
+          <Tooltip formatter={(v: number) => formatYAxis(v)} />
+        </PieChart>
+      </ResponsiveContainer>
+    );
+  }
+
+  return null;
+}
 
 interface Props {
   message: ChatMessageType;
@@ -30,7 +99,7 @@ function renderMarkdown(text: string): React.ReactNode {
           </thead>
           <tbody>
             {body.map((r, i) => (
-              <tr key={i}>{r.map((c, j) => <td key={j} dangerouslySetInnerHTML={{ __html: boldify(c) }} />)}</tr>
+              <tr key={i}>{r.map((c, j) => <td key={j} dangerouslySetInnerHTML={{ __html: inlineFormat(c) }} />)}</tr>
             ))}
           </tbody>
         </table>
@@ -40,7 +109,11 @@ function renderMarkdown(text: string): React.ReactNode {
     inTable = false;
   };
 
-  const boldify = (s: string) => s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  const inlineFormat = (s: string) =>
+    s
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g, "<em>$1</em>")
+      .replace(/_(.+?)_/g, "<em>$1</em>");
 
   for (const line of lines) {
     if (line.startsWith("[status:approved]")) {
@@ -93,14 +166,26 @@ function renderMarkdown(text: string): React.ReactNode {
     } else {
       if (inTable) flushTable();
       if (!line.trim()) {
-        nodes.push(<br key={nodes.length} />);
+        nodes.push(<div key={nodes.length} style={{ height: 6 }} />);
+      } else if (/^#{1,3} /.test(line)) {
+        const text = line.replace(/^#{1,3} /, "");
+        nodes.push(
+          <p key={nodes.length} style={{ margin: "8px 0 4px", fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}
+            dangerouslySetInnerHTML={{ __html: inlineFormat(text) }} />
+        );
+      } else if (/^[-*] /.test(line)) {
+        nodes.push(
+          <div key={nodes.length} style={{ display: "flex", gap: 8, margin: "3px 0", fontSize: 13.5, lineHeight: 1.6, color: "var(--text-secondary)" }}>
+            <span style={{ marginTop: 6, width: 5, height: 5, borderRadius: "50%", background: "var(--text-muted)", flexShrink: 0 }} />
+            <span dangerouslySetInnerHTML={{ __html: inlineFormat(line.replace(/^[-*] /, "")) }} />
+          </div>
+        );
       } else {
         nodes.push(
           <p
             key={nodes.length}
-            className="prose"
             style={{ margin: "3px 0", fontSize: 13.5, lineHeight: 1.6, color: "var(--text-primary)" }}
-            dangerouslySetInnerHTML={{ __html: boldify(line) }}
+            dangerouslySetInnerHTML={{ __html: inlineFormat(line) }}
           />
         );
       }
@@ -160,6 +245,18 @@ export default function ChatMessage({ message, isStreaming, onApprovalDecision }
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 5 }}>
         {message.steps && message.steps.length > 0 && (
           <StreamingSteps steps={message.steps} activeIndex={activeIndex} />
+        )}
+
+        {message.chartData && (
+          <div style={{
+            background: "#ffffff",
+            border: "1px solid #e4e0f0",
+            borderRadius: "4px 14px 14px 14px",
+            padding: "14px 14px 8px",
+            maxWidth: "100%",
+          }}>
+            <InlineChart chart={message.chartData} />
+          </div>
         )}
 
         {(message.content || isStreaming) && (

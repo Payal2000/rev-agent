@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { ChatMessage, SSEEvent, streamChat } from "@/lib/api";
 import { streamMockResponse } from "@/lib/mockResponses";
@@ -14,9 +15,14 @@ import {
   CornerDownLeft,
   PenLine,
   CheckCircle2,
+  Plus,
+  MessageSquare,
+  Clock,
+  Trash2,
 } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const SESSION_KEY = "rev_chat_session_id";
 
 async function isBackendReachable(): Promise<boolean> {
   try {
@@ -34,17 +40,137 @@ const SUGGESTED = [
 
 const CARD = "bg-white/65 backdrop-blur-sm dark:bg-white/6 border-[3px] border-white dark:border-white/10 shadow-sm rounded-2xl";
 
-export default function ChatPage() {
+interface Session {
+  session_id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+function formatSessionTime(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays === 0) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function ChatInner() {
+  const searchParams = useSearchParams();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId] = useState(() => uuidv4());
+  const [sessionId, setSessionId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("new") === "1") {
+        const newId = uuidv4();
+        localStorage.setItem(SESSION_KEY, newId);
+        return newId;
+      }
+      return localStorage.getItem(SESSION_KEY) || uuidv4();
+    }
+    return uuidv4();
+  });
   const [backendLive, setBackendLive] = useState<boolean | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const autoSentRef = useRef(false);
+
+  // Persist session_id to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(SESSION_KEY, sessionId);
+  }, [sessionId]);
 
   useEffect(() => { isBackendReachable().then(setBackendLive); }, []);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  // Load sessions list from backend
+  const loadSessions = useCallback(async () => {
+    if (!backendLive) return;
+    try {
+      const r = await fetch(`${API_BASE}/api/chat/sessions`);
+      if (r.ok) setSessions(await r.json());
+    } catch { /* ignore */ }
+  }, [backendLive]);
+
+  useEffect(() => { loadSessions(); }, [loadSessions]);
+
+  // Restore messages for current session on first load
+  useEffect(() => {
+    if (!backendLive || messages.length > 0) return;
+    const restore = async () => {
+      setLoadingHistory(true);
+      try {
+        const r = await fetch(`${API_BASE}/api/chat/sessions/${sessionId}/messages`);
+        if (r.ok) {
+          const data = await r.json();
+          if (data.messages?.length) {
+            setMessages(data.messages.map((m: { role: string; content: string }) => ({
+              id: uuidv4(),
+              role: m.role,
+              content: m.content,
+              timestamp: new Date(),
+            })));
+          }
+        }
+      } catch { /* ignore */ }
+      setLoadingHistory(false);
+    };
+    restore();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backendLive]);
+
+  // Auto-send ?q= query param on first load
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q && !autoSentRef.current && backendLive !== null) {
+      autoSentRef.current = true;
+      sendMessage(q);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backendLive, searchParams]);
+
+  const startNewChat = () => {
+    const newId = uuidv4();
+    setSessionId(newId);
+    setMessages([]);
+    autoSentRef.current = false;
+  };
+
+  const switchSession = async (sid: string) => {
+    if (sid === sessionId) return;
+    setSessionId(sid);
+    setMessages([]);
+    setLoadingHistory(true);
+    try {
+      const r = await fetch(`${API_BASE}/api/chat/sessions/${sid}/messages`);
+      if (r.ok) {
+        const data = await r.json();
+        setMessages((data.messages || []).map((m: { role: string; content: string }) => ({
+          id: uuidv4(),
+          role: m.role,
+          content: m.content,
+          timestamp: new Date(),
+        })));
+      }
+    } catch { /* ignore */ }
+    setLoadingHistory(false);
+  };
+
+  const deleteSession = async (e: React.MouseEvent, sid: string) => {
+    e.stopPropagation();
+    try {
+      await fetch(`${API_BASE}/api/chat/sessions/${sid}`, { method: "DELETE" });
+    } catch { /* ignore */ }
+    setSessions(prev => prev.filter(s => s.session_id !== sid));
+    if (sid === sessionId) startNewChat();
+  };
 
   const sendMessage = (text: string) => {
     if (!text.trim() || isLoading) return;
@@ -64,13 +190,17 @@ export default function ChatPage() {
           case "token": return { ...m, content: m.content + (event.content || "") };
           case "step": return { ...m, steps: [...(m.steps || []), { agent: event.agent!, label: event.label! }] };
           case "approval_required": return { ...m, approvalContext: event.context, sessionId: event.session_id };
+          case "chart": return { ...m, chartData: { chartType: event.chartType!, data: event.data!, xKey: event.xKey!, yKeys: event.yKeys! } };
           case "error": return { ...m, content: `Error: ${event.message}` };
           default: return m;
         }
       }));
     };
 
-    const handleDone = () => setIsLoading(false);
+    const handleDone = () => {
+      setIsLoading(false);
+      loadSessions(); // refresh sidebar after message completes
+    };
 
     if (backendLive) streamChat(text.trim(), sessionId, handleEvent, handleDone);
     else streamMockResponse(text.trim(), handleEvent, handleDone);
@@ -82,10 +212,136 @@ export default function ChatPage() {
 
   return (
     <div className="flex gap-4 p-4 lg:p-6 h-full overflow-hidden">
+
+      {/* Sessions sidebar */}
+      <div className={`${CARD} hidden lg:flex w-60 xl:w-64 flex-shrink-0 flex-col overflow-hidden`}>
+        {/* New chat button */}
+        <div style={{ padding: "14px 12px 10px", borderBottom: "1px solid var(--border)" }}>
+          <button
+            onClick={startNewChat}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "9px 12px",
+              background: "var(--primary)",
+              border: "none",
+              borderRadius: 10,
+              cursor: "pointer",
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 600,
+              fontFamily: "var(--font-sans)",
+            }}
+          >
+            <Plus size={14} />
+            New Chat
+          </button>
+        </div>
+
+        {/* Sessions list */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "8px 6px" }}>
+          <p style={{
+            fontSize: 10.5,
+            fontWeight: 600,
+            color: "var(--text-muted)",
+            textTransform: "uppercase",
+            letterSpacing: "0.07em",
+            padding: "4px 8px 8px",
+          }}>
+            Recent chats
+          </p>
+
+          {sessions.length === 0 && !loadingHistory && (
+            <div style={{ padding: "20px 8px", textAlign: "center" }}>
+              <MessageSquare size={20} color="var(--text-muted)" style={{ margin: "0 auto 8px" }} />
+              <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: 0 }}>No chats yet</p>
+            </div>
+          )}
+
+          {sessions.map(s => (
+            <div
+              key={s.session_id}
+              onClick={() => switchSession(s.session_id)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "8px 6px 8px 10px",
+                borderRadius: 8,
+                background: s.session_id === sessionId ? "var(--accent-soft)" : "transparent",
+                cursor: "pointer",
+                marginBottom: 2,
+                transition: "background 120ms",
+              }}
+              onMouseEnter={e => {
+                if (s.session_id !== sessionId)
+                  (e.currentTarget as HTMLElement).style.background = "var(--bg-hover)";
+                const btn = (e.currentTarget as HTMLElement).querySelector(".del-btn") as HTMLElement;
+                if (btn) btn.style.opacity = "1";
+              }}
+              onMouseLeave={e => {
+                if (s.session_id !== sessionId)
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
+                const btn = (e.currentTarget as HTMLElement).querySelector(".del-btn") as HTMLElement;
+                if (btn) btn.style.opacity = "0";
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: 12.5,
+                  color: s.session_id === sessionId ? "var(--accent-ink)" : "var(--text-primary)",
+                  fontWeight: s.session_id === sessionId ? 600 : 400,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  lineHeight: 1.4,
+                }}>
+                  {s.title}
+                </div>
+                <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 2, display: "flex", alignItems: "center", gap: 3 }}>
+                  <Clock size={9} />
+                  {formatSessionTime(s.updated_at)}
+                </div>
+              </div>
+              <button
+                className="del-btn"
+                onClick={(e) => deleteSession(e, s.session_id)}
+                style={{
+                  opacity: 0,
+                  flexShrink: 0,
+                  width: 22,
+                  height: 22,
+                  border: "none",
+                  background: "transparent",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 5,
+                  transition: "opacity 120ms, background 120ms",
+                  color: "var(--text-muted)",
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = "var(--danger-soft)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                title="Delete chat"
+              >
+                <Trash2 size={11} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Main chat area */}
       <div className={`${CARD} flex flex-1 flex-col overflow-hidden min-w-0`}>
         <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
-          {messages.length === 0 ? (
+          {loadingHistory ? (
+            <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Restoring conversation…</span>
+            </div>
+          ) : messages.length === 0 ? (
             <div style={{
               height: "100%",
               display: "flex",
@@ -279,41 +535,14 @@ export default function ChatPage() {
           </p>
         </div>
       </div>
-
-      {/* Context sidebar */}
-      <div className={`${CARD} hidden lg:flex w-72 xl:w-80 flex-shrink-0 flex-col gap-5 p-5 overflow-y-auto`}>
-        <div>
-          <h3 style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", margin: "0 0 10px" }}>
-            Quick context
-          </h3>
-          {[
-            { label: "Current MRR", value: "$423.8K", color: "var(--success)" },
-            { label: "Active subs", value: "1,284", color: "var(--text-primary)" },
-            { label: "Churn rate", value: "2.1%", color: "var(--warning)" },
-            { label: "NRR", value: "108.4%", color: "var(--success)" },
-          ].map(({ label, value, color }) => (
-            <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--border-subtle)" }}>
-              <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{label}</span>
-              <span style={{ fontSize: 12.5, fontWeight: 700, fontFamily: "var(--font-mono)", color }}>{value}</span>
-            </div>
-          ))}
-        </div>
-
-        <div>
-          <h3 style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", margin: "0 0 10px" }}>
-            Active alerts
-          </h3>
-          {[
-            { dot: "var(--danger)", text: "Enterprise churn spiked 42%" },
-            { dot: "var(--warning)", text: "Payment failure rate at 3.4%" },
-          ].map(({ dot, text }) => (
-            <div key={text} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 8 }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", background: dot, marginTop: 5, flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.4 }}>{text}</span>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">Loading…</div>}>
+      <ChatInner />
+    </Suspense>
   );
 }

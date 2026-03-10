@@ -1,6 +1,13 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-export type SSEEventType = "token" | "step" | "approval_required" | "done" | "error";
+export type SSEEventType = "token" | "step" | "approval_required" | "done" | "error" | "chart";
+
+export interface ChartData {
+  chartType: "line" | "bar" | "pie";
+  data: Record<string, unknown>[];
+  xKey: string;
+  yKeys: string[];
+}
 
 export interface SSEEvent {
   type: SSEEventType;
@@ -10,6 +17,11 @@ export interface SSEEvent {
   session_id?: string;
   context?: ApprovalContext;
   message?: string;
+  // chart fields
+  chartType?: "line" | "bar" | "pie";
+  data?: Record<string, unknown>[];
+  xKey?: string;
+  yKeys?: string[];
 }
 
 export interface ApprovalContext {
@@ -34,6 +46,7 @@ export interface ChatMessage {
   steps?: { agent: string; label: string }[];
   approvalContext?: ApprovalContext;
   sessionId?: string;
+  chartData?: ChartData;
   timestamp: Date;
 }
 

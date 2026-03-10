@@ -16,18 +16,24 @@ export default function ApprovalCard({ sessionId, context, onDecision }: Props) 
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [showReasoning, setShowReasoning] = useState(false);
 
+  const isMock = sessionId.startsWith("mock-");
+
   const handleApprove = async () => {
     setLoading(true);
-    try { await submitApproval(sessionId, true); onDecision(true); }
-    catch (err) { console.error(err); }
+    try {
+      if (!isMock) await submitApproval(sessionId, true);
+      onDecision(true);
+    } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
 
   const handleReject = async () => {
     if (!showRejectInput) { setShowRejectInput(true); return; }
     setLoading(true);
-    try { await submitApproval(sessionId, false, undefined, rejectionReason); onDecision(false); }
-    catch (err) { console.error(err); }
+    try {
+      if (!isMock) await submitApproval(sessionId, false, undefined, rejectionReason);
+      onDecision(false);
+    } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
 
