@@ -118,26 +118,77 @@ async def execute_safe_sql(
         }
 
 
+def _clean_cell(value) -> str:
+    """Format a cell value for readable display."""
+    if value is None:
+        return "—"
+    # datetime-like objects
+    if hasattr(value, "strftime"):
+        return value.strftime("%-m/%-d/%Y")
+    s = str(value)
+    # ISO datetime strings: 2026-03-09 00:00:00+00:00 → Mar 9, 2026
+    import re
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2})[ T]", s)
+    if m:
+        from datetime import datetime
+        try:
+            dt = datetime.strptime(f"{m.group(1)}-{m.group(2)}-{m.group(3)}", "%Y-%m-%d")
+            return dt.strftime("%b %-d, %Y")
+        except ValueError:
+            pass
+    # Large numbers → add commas
+    try:
+        f = float(s)
+        if f == int(f) and abs(f) < 1e12:
+            return f"{int(f):,}"
+        # currency-like (decimal)
+        if abs(f) >= 100:
+            return f"{f:,.2f}"
+    except (ValueError, OverflowError):
+        pass
+    return s
+
+
+def _pretty_header(col: str) -> str:
+    """Convert snake_case column name to Title Case label."""
+    return col.replace("_", " ").title()
+
+
 def format_results_for_llm(query_result: dict) -> str:
-    """Format SQL results as readable text for LLM consumption."""
+    """Format SQL results as a proper markdown table with clean values."""
     if not query_result["rows"]:
         return "Query returned no results."
 
     columns = query_result["columns"]
     rows = query_result["rows"]
     row_count = query_result["row_count"]
+    display_rows = rows[:15]  # cap display at 15 rows
 
-    lines = [f"Results ({row_count} rows):"]
-    lines.append(" | ".join(columns))
-    lines.append("-" * (len(" | ".join(columns)) + 5))
+    headers = [_pretty_header(c) for c in columns]
 
-    for row in rows[:20]:  # cap display at 20 rows
-        lines.append(" | ".join(str(row.get(col, "")) for col in columns))
+    # Build cell strings
+    cell_matrix = [
+        [_clean_cell(row.get(col)) for col in columns]
+        for row in display_rows
+    ]
 
-    if row_count > 20:
-        lines.append(f"... and {row_count - 20} more rows")
+    # Compute column widths
+    widths = [max(len(h), max((len(r[i]) for r in cell_matrix), default=0)) for i, h in enumerate(headers)]
 
-    if query_result.get("truncated"):
-        lines.append(f"(Results truncated at {query_result['row_count']} rows)")
+    def row_line(cells):
+        return "| " + " | ".join(c.ljust(widths[i]) for i, c in enumerate(cells)) + " |"
+
+    sep = "| " + " | ".join("-" * w for w in widths) + " |"
+
+    lines = [
+        f"**{row_count} result{'s' if row_count != 1 else ''}**\n",
+        row_line(headers),
+        sep,
+    ]
+    for cells in cell_matrix:
+        lines.append(row_line(cells))
+
+    if row_count > 15:
+        lines.append(f"\n_…and {row_count - 15} more rows_")
 
     return "\n".join(lines)

@@ -36,9 +36,9 @@ async def search_schema(query: str, top_k: int = 5) -> list[dict[str, Any]]:
                     table_name,
                     description,
                     metadata,
-                    1 - (embedding <=> :embedding::vector) AS similarity
+                    1 - (embedding <=> CAST(:embedding AS vector)) AS similarity
                 FROM schema_embeddings
-                ORDER BY embedding <=> :embedding::vector
+                ORDER BY embedding <=> CAST(:embedding AS vector)
                 LIMIT :top_k
             """),
             {"embedding": embedding_str, "top_k": top_k}
@@ -73,9 +73,9 @@ async def search_playbook(query: str, top_k: int = 5) -> list[dict[str, Any]]:
                     category,
                     estimated_impact,
                     tags,
-                    1 - (embedding <=> :embedding::vector) AS similarity
+                    1 - (embedding <=> CAST(:embedding AS vector)) AS similarity
                 FROM rag_playbook
-                ORDER BY embedding <=> :embedding::vector
+                ORDER BY embedding <=> CAST(:embedding AS vector)
                 LIMIT :top_k
             """),
             {"embedding": embedding_str, "top_k": top_k}
@@ -112,11 +112,11 @@ async def search_agent_memory(query: str, company_id: str, top_k: int = 3) -> li
                     outcome,
                     metadata,
                     created_at,
-                    1 - (content_embedding <=> :embedding::vector) AS similarity
+                    1 - (content_embedding <=> CAST(:embedding AS vector)) AS similarity
                 FROM agent_memory
                 WHERE company_id = :company_id
                     AND content_embedding IS NOT NULL
-                ORDER BY content_embedding <=> :embedding::vector
+                ORDER BY content_embedding <=> CAST(:embedding AS vector)
                 LIMIT :top_k
             """),
             {"embedding": embedding_str, "company_id": company_id, "top_k": top_k}
