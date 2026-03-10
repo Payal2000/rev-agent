@@ -14,7 +14,7 @@ import {
 import { useLiveData } from "@/lib/hooks";
 import AnomalyCard from "@/components/ui/AnomalyCard";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Sparkles, TrendingUp, TrendingDown, Minus, ArrowUpRight, Activity, AlertTriangle, AlertCircle, Lightbulb, Info, Building2, Users, Zap } from "lucide-react";
+import { ArrowRight, CheckCircle2, Sparkles, TrendingUp, TrendingDown, Minus, ArrowUpRight, Activity, AlertTriangle, AlertCircle, Lightbulb, Info, Building2, Users, Zap, ChevronDown, ChevronUp } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { KPI_COLORS } from "@/lib/kpi-colors";
 import { Card, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,12 +33,6 @@ const SEGMENT_PASTEL = {
   Starter:    { fill: KPI_COLORS.green.bg,  text: KPI_COLORS.green.text  },
 } as const;
 
-const segmentChartData = SEGMENT_HEALTH.map(s => ({
-  segment: s.tier,
-  mrr: s.mrr,
-  fill: SEGMENT_PASTEL[s.tier as keyof typeof SEGMENT_PASTEL]?.fill ?? s.color,
-}));
-
 const segmentChartConfig: ChartConfig = {
   mrr: { label: "MRR" },
   Enterprise: { label: "Enterprise", color: SEGMENT_PASTEL.Enterprise.fill },
@@ -46,8 +40,13 @@ const segmentChartConfig: ChartConfig = {
   Starter:    { label: "Starter",    color: SEGMENT_PASTEL.Starter.fill },
 };
 
-function RevenueSegmentDonut() {
-  const totalMrr = useMemo(() => segmentChartData.reduce((s, d) => s + d.mrr, 0), []);
+function RevenueSegmentDonut({ segmentHealth }: { segmentHealth: typeof SEGMENT_HEALTH }) {
+  const segmentChartData = useMemo(() => segmentHealth.map(s => ({
+    segment: s.tier,
+    mrr: s.mrr,
+    fill: SEGMENT_PASTEL[s.tier as keyof typeof SEGMENT_PASTEL]?.fill ?? s.color,
+  })), [segmentHealth]);
+  const totalMrr = useMemo(() => segmentChartData.reduce((s, d) => s + d.mrr, 0), [segmentChartData]);
 
   return (
     <div className={`${CARD} px-6 py-5 flex flex-col`}>
@@ -113,8 +112,16 @@ function RetentionCell({ value }: { value: number | null }) {
 
 export default function InsightsPage() {
   const [filter, setFilter] = useState<Severity>("all");
+  const [cohortExpanded, setCohortExpanded] = useState(true);
+  const [growthExpanded, setGrowthExpanded] = useState(true);
   const { data: anomalies } = useLiveData("/api/insights/anomalies", ANOMALIES);
   const { data: signals } = useLiveData("/api/insights/signals", REVENUE_SIGNALS);
+  const { data: churnSignals } = useLiveData("/api/insights/churn-signals", CHURN_SIGNALS);
+  const { data: cohortRetention } = useLiveData("/api/insights/cohort-retention", COHORT_RETENTION);
+  const { data: growthOpportunities } = useLiveData("/api/insights/growth-opportunities", GROWTH_OPPORTUNITIES);
+  const { data: segmentHealth } = useLiveData("/api/insights/segment-health", SEGMENT_HEALTH);
+  const { data: operationalAlerts } = useLiveData("/api/insights/operational-alerts", OPERATIONAL_ALERTS);
+  const { data: digest, loading: digestLoading } = useLiveData("/api/insights/weekly-digest", WEEKLY_DIGEST);
 
   const filtered = filter === "all" ? anomalies : anomalies.filter((a: typeof ANOMALIES[0]) => a.severity === filter);
   const counts = {
@@ -180,14 +187,19 @@ export default function InsightsPage() {
             </span>
             <div>
               <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>AI Insights</p>
-              <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>Generated {WEEKLY_DIGEST.generatedAt}</p>
+              <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
+                {digestLoading ? "Generating fresh insights…" : `Generated ${digest.generatedAt}`}
+              </p>
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {WEEKLY_DIGEST.highlights.map((h, i) => {
+            {digest.highlights.map((h: typeof WEEKLY_DIGEST.highlights[0] & { query?: string }, i: number) => {
               const kc = h.type === "warning" ? KPI_COLORS.orange : h.type === "positive" ? KPI_COLORS.green : KPI_COLORS.purple;
               const IconEl = h.type === "warning" ? AlertTriangle : h.type === "positive" ? Lightbulb : Activity;
               const cfg = { icon: <IconEl size={15} color={kc.text} />, iconBg: kc.bg, iconBorder: `${kc.text}44`, linkColor: kc.text };
+              const chatHref = h.query
+                ? `/chat?new=1&q=${encodeURIComponent(h.query)}`
+                : `/chat?new=1&q=${encodeURIComponent(h.title)}`;
               return (
                 <div key={i} style={{ padding: "14px 16px", borderRadius: 14, background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
@@ -197,8 +209,8 @@ export default function InsightsPage() {
                     <p style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{h.title}</p>
                   </div>
                   <p style={{ fontSize: 12.5, color: "var(--text-secondary)", margin: "0 0 10px", lineHeight: 1.6 }}>{h.text}</p>
-                  <Link href="/chat" style={{ fontSize: 12.5, fontWeight: 600, color: cfg.linkColor, textDecoration: "none" }}>
-                    View Details
+                  <Link href={chatHref} style={{ fontSize: 12.5, fontWeight: 600, color: cfg.linkColor, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    View Details <ArrowRight size={11} />
                   </Link>
                 </div>
               );
@@ -207,7 +219,7 @@ export default function InsightsPage() {
         </div>
 
         {/* Revenue by Segment donut */}
-        <RevenueSegmentDonut />
+        <RevenueSegmentDonut segmentHealth={segmentHealth} />
       </div>
 
       {/* ── Churn Intelligence + Cohort Retention ── */}
@@ -215,11 +227,12 @@ export default function InsightsPage() {
         {/* Early churn signals */}
         <div className={`${CARD} px-6 py-5`}>
           <h2 className="section-title" style={{ marginBottom: 4 }}>Churn Intelligence</h2>
-          <p className="section-subtitle" style={{ marginBottom: 14 }}>Early warning signals · {CHURN_SIGNALS.reduce((s, c) => s + c.accounts, 0)} accounts flagged</p>
+          <p className="section-subtitle" style={{ marginBottom: 14 }}>Early warning signals · {churnSignals.reduce((s: number, c: typeof CHURN_SIGNALS[0]) => s + c.accounts, 0)} accounts flagged</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {CHURN_SIGNALS.map(s => {
+            {churnSignals.map((s: typeof CHURN_SIGNALS[0]) => {
               const kc = s.severity === "critical" ? KPI_COLORS.red : s.severity === "high" ? KPI_COLORS.orange : s.severity === "medium" ? KPI_COLORS.yellow : KPI_COLORS.green;
               const ChurnIcon = s.severity === "critical" || s.severity === "high" ? AlertTriangle : s.severity === "medium" ? AlertCircle : Info;
+              const churnHref = `/chat?new=1&q=${encodeURIComponent(`Investigate churn signal: ${s.signal}. Which accounts are affected and what actions can we take?`)}`;
               return (
                 <div key={s.signal} style={{ padding: "14px 16px", borderRadius: 14, background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
                   {/* Header: icon + signal + accounts */}
@@ -240,7 +253,7 @@ export default function InsightsPage() {
                   </div>
                   {/* Footer link */}
                   <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                    <Link href="/chat" style={{ fontSize: 12.5, fontWeight: 400, color: "var(--text-primary)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <Link href={churnHref} style={{ fontSize: 12.5, fontWeight: 400, color: "var(--text-primary)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
                       Investigate in Chat <ArrowRight size={11} />
                     </Link>
                   </div>
@@ -251,9 +264,21 @@ export default function InsightsPage() {
         </div>
 
         {/* Cohort retention heatmap */}
-        <div className={`${CARD} px-6 py-5`}>
-          <h2 className="section-title" style={{ marginBottom: 4 }}>Cohort Retention</h2>
-          <p className="section-subtitle" style={{ marginBottom: 14 }}>Monthly retention by signup cohort</p>
+        <div className={`${CARD}`} style={{ overflow: "hidden" }}>
+          <button
+            onClick={() => setCohortExpanded(v => !v)}
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", background: "none", border: "none", cursor: "pointer", borderBottom: cohortExpanded ? "1px solid var(--border-subtle)" : "none" }}
+          >
+            <div style={{ textAlign: "left" }}>
+              <h2 className="section-title" style={{ margin: 0 }}>Cohort Retention</h2>
+              <p className="section-subtitle" style={{ margin: 0 }}>Monthly retention by signup cohort</p>
+            </div>
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: "50%", background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-muted)", flexShrink: 0 }}>
+              {cohortExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </span>
+          </button>
+          {cohortExpanded && (
+          <div style={{ padding: "16px 24px 20px" }}>
           <div className="table-scroll">
             <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0 }}>
               <thead>
@@ -265,7 +290,7 @@ export default function InsightsPage() {
                 </tr>
               </thead>
               <tbody>
-                {COHORT_RETENTION.map(row => (
+                {cohortRetention.map((row: typeof COHORT_RETENTION[0]) => (
                   <tr key={row.cohort}>
                     <td style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", padding: "14px 20px", whiteSpace: "nowrap", borderBottom: "1px solid var(--border)" }}>{row.cohort}</td>
                     <RetentionCell value={row.m1} />
@@ -286,21 +311,38 @@ export default function InsightsPage() {
               </span>
             ))}
           </div>
+          </div>
+          )}
         </div>
       </div>
 
       {/* ── Growth Opportunities ── */}
-      <div className={`${CARD} px-6 py-5`}>
-        <div className="section-header" style={{ marginBottom: 14 }}>
-          <div>
-            <h2 className="section-title">Growth Opportunities</h2>
-            <p className="section-subtitle">Accounts showing upsell or expansion signals</p>
+      <div className={`${CARD}`} style={{ overflow: "hidden" }}>
+        <button
+          onClick={() => setGrowthExpanded(v => !v)}
+          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", background: "none", border: "none", cursor: "pointer", borderBottom: growthExpanded ? "1px solid var(--border-subtle)" : "none" }}
+        >
+          <div style={{ textAlign: "left" }}>
+            <h2 className="section-title" style={{ margin: 0 }}>Growth Opportunities</h2>
+            <p className="section-subtitle" style={{ margin: 0 }}>Accounts showing upsell or expansion signals</p>
           </div>
-          <Link href="/chat" className="inline-link" style={{ flexShrink: 0 }}>
-            Get playbook <ArrowRight size={10} />
-          </Link>
-        </div>
-        <div className="table-scroll">
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <Link
+              href={`/chat?new=1&q=${encodeURIComponent("Show me upsell and expansion playbooks for accounts showing growth signals")}`}
+              className="inline-link"
+              style={{ flexShrink: 0 }}
+              onClick={e => e.stopPropagation()}
+            >
+              Get playbook <ArrowRight size={10} />
+            </Link>
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: "50%", background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-muted)", flexShrink: 0 }}>
+              {growthExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </span>
+          </div>
+        </button>
+        {growthExpanded && (
+        <div style={{ padding: "0 24px 24px" }}>
+        <div className="table-scroll" style={{ marginTop: 16 }}>
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: 540 }}>
             <thead>
               <tr>
@@ -310,22 +352,22 @@ export default function InsightsPage() {
               </tr>
             </thead>
             <tbody>
-              {GROWTH_OPPORTUNITIES.map((acc, i) => (
+              {growthOpportunities.map((acc: typeof GROWTH_OPPORTUNITIES[0], i: number) => (
                 <tr key={acc.id}>
-                  <td style={{ padding: "17px 20px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)", borderBottom: i < GROWTH_OPPORTUNITIES.length - 1 ? "1px solid var(--border)" : "none" }}>{acc.name}</td>
-                  <td style={{ padding: "17px 20px", borderBottom: i < GROWTH_OPPORTUNITIES.length - 1 ? "1px solid var(--border)" : "none" }}>
+                  <td style={{ padding: "17px 20px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)", borderBottom: i < growthOpportunities.length - 1 ? "1px solid var(--border)" : "none" }}>{acc.name}</td>
+                  <td style={{ padding: "17px 20px", borderBottom: i < growthOpportunities.length - 1 ? "1px solid var(--border)" : "none" }}>
                     <span style={{ fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 999, background: acc.tier === "Enterprise" ? KPI_COLORS.sky.bg : acc.tier === "Growth" ? KPI_COLORS.purple.bg : KPI_COLORS.green.bg, color: acc.tier === "Enterprise" ? KPI_COLORS.sky.text : acc.tier === "Growth" ? KPI_COLORS.purple.text : KPI_COLORS.green.text, border: `1px solid ${acc.tier === "Enterprise" ? KPI_COLORS.sky.text : acc.tier === "Growth" ? KPI_COLORS.purple.text : KPI_COLORS.green.text}33` }}>
                       {acc.tier}
                     </span>
                   </td>
-                  <td style={{ padding: "17px 20px", fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 400, color: "var(--text-primary)", borderBottom: i < GROWTH_OPPORTUNITIES.length - 1 ? "1px solid var(--border)" : "none" }}>{formatCurrency(acc.mrr)}</td>
-                  <td style={{ padding: "17px 20px", fontSize: 13, color: "var(--text-secondary)", borderBottom: i < GROWTH_OPPORTUNITIES.length - 1 ? "1px solid var(--border)" : "none" }}>{acc.signal}</td>
-                  <td style={{ padding: "17px 20px", borderBottom: i < GROWTH_OPPORTUNITIES.length - 1 ? "1px solid var(--border)" : "none" }}>
+                  <td style={{ padding: "17px 20px", fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 400, color: "var(--text-primary)", borderBottom: i < growthOpportunities.length - 1 ? "1px solid var(--border)" : "none" }}>{formatCurrency(acc.mrr)}</td>
+                  <td style={{ padding: "17px 20px", fontSize: 13, color: "var(--text-secondary)", borderBottom: i < growthOpportunities.length - 1 ? "1px solid var(--border)" : "none" }}>{acc.signal}</td>
+                  <td style={{ padding: "17px 20px", borderBottom: i < growthOpportunities.length - 1 ? "1px solid var(--border)" : "none" }}>
                     <span style={{ fontSize: 13, fontFamily: "var(--font-mono)", fontWeight: 400, color: "var(--success)", display: "inline-flex", alignItems: "center", gap: 3 }}>
                       <ArrowUpRight size={13} />{acc.potential}
                     </span>
                   </td>
-                  <td style={{ padding: "17px 20px", borderBottom: i < GROWTH_OPPORTUNITIES.length - 1 ? "1px solid var(--border)" : "none" }}>
+                  <td style={{ padding: "17px 20px", borderBottom: i < growthOpportunities.length - 1 ? "1px solid var(--border)" : "none" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                       <div style={{ width: 60, height: 4, borderRadius: 2, background: "var(--bg-elevated)", overflow: "hidden" }}>
                         <div style={{ width: `${acc.readiness}%`, height: "100%", background: acc.readiness >= 85 ? "var(--success)" : "var(--accent-ink)", borderRadius: 2 }} />
@@ -338,6 +380,8 @@ export default function InsightsPage() {
             </tbody>
           </table>
         </div>
+        </div>
+        )}
       </div>
 
       {/* ── Segment Health + Operational Alerts ── */}
@@ -347,7 +391,7 @@ export default function InsightsPage() {
           <h2 className="section-title" style={{ marginBottom: 4 }}>Segment Health</h2>
           <p className="section-subtitle" style={{ marginBottom: 14 }}>Health score by tier · Churn rate · NRR</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {SEGMENT_HEALTH.map(seg => {
+            {segmentHealth.map((seg: typeof SEGMENT_HEALTH[0]) => {
               const kc = SEGMENT_PASTEL[seg.tier as keyof typeof SEGMENT_PASTEL] ?? { fill: KPI_COLORS.gray.bg, text: KPI_COLORS.gray.text };
               const colors = { bg: kc.fill, text: kc.text };
               const TierIcon = seg.tier === "Enterprise" ? Building2 : seg.tier === "Growth" ? Users : Zap;
@@ -398,9 +442,10 @@ export default function InsightsPage() {
           <h2 className="section-title" style={{ marginBottom: 4 }}>Operational Alerts</h2>
           <p className="section-subtitle" style={{ marginBottom: 14 }}>Payments · Billing · Conversions</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {OPERATIONAL_ALERTS.map(a => {
+            {operationalAlerts.map((a: typeof OPERATIONAL_ALERTS[0]) => {
               const kc = a.status === "critical" ? KPI_COLORS.red : a.status === "warning" ? KPI_COLORS.orange : KPI_COLORS.purple;
               const AlertIcon = a.status === "critical" ? AlertTriangle : a.status === "warning" ? AlertCircle : Info;
+              const alertHref = `/chat?new=1&q=${encodeURIComponent(`Investigate operational alert: ${a.label} (${a.value}). What is causing this and what should we do?`)}`;
               return (
                 <div key={a.id} style={{ padding: "14px 16px", borderRadius: 14, background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
                   {/* Header: icon + label + value */}
@@ -421,7 +466,7 @@ export default function InsightsPage() {
                   </div>
                   {/* Footer link */}
                   <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                    <Link href="/chat" style={{ fontSize: 12.5, fontWeight: 400, color: "var(--text-primary)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <Link href={alertHref} style={{ fontSize: 12.5, fontWeight: 400, color: "var(--text-primary)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
                       Investigate in Chat <ArrowRight size={11} />
                     </Link>
                   </div>
@@ -430,7 +475,7 @@ export default function InsightsPage() {
             })}
           </div>
           <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border-subtle)" }}>
-            <Link href="/chat" className="inline-link">
+            <Link href={`/chat?new=1&q=${encodeURIComponent("Create a dunning campaign strategy for failed payments and at-risk accounts")}`} className="inline-link">
               Run dunning campaign <ArrowRight size={10} />
             </Link>
           </div>
@@ -442,7 +487,7 @@ export default function InsightsPage() {
         <div className="section-header" style={{ marginBottom: 14 }}>
           <div>
             <h2 className="section-title">Anomaly Detection</h2>
-            <p className="section-subtitle">ML-detected anomalies · {ANOMALIES.length} events · Powered by Insights Agent</p>
+            <p className="section-subtitle">ML-detected anomalies · {anomalies.length} events · Powered by Insights Agent</p>
           </div>
           {/* Filter pills */}
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>

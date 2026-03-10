@@ -30,6 +30,8 @@ import {
   IconGripVertical,
   IconLayoutColumns,
   IconMessageChatbot,
+  IconChevronDown,
+  IconChevronUp,
 } from "@tabler/icons-react"
 import {
   flexRender,
@@ -100,7 +102,7 @@ export const schema = z.object({
   mrr: z.number(),
   riskScore: z.number(),
   daysToChurn: z.number(),
-  signals: z.string(),
+  signals: z.union([z.string(), z.array(z.string())]),
 })
 
 type Account = z.infer<typeof schema>
@@ -224,7 +226,7 @@ const columns: ColumnDef<Account>[] = [
     header: "Signals",
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground line-clamp-1 max-w-[180px]">
-        {row.original.signals}
+        {Array.isArray(row.original.signals) ? row.original.signals.join(", ") : row.original.signals}
       </span>
     ),
   },
@@ -288,6 +290,7 @@ export function DataTable({ data: initialData }: { data: Account[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [activeTab, setActiveTab] = React.useState("all")
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 })
+  const [expanded, setExpanded] = React.useState(true)
   const sortableId = React.useId()
   const sensors = useSensors(
     useSensor(MouseSensor, {}),
@@ -343,6 +346,22 @@ export function DataTable({ data: initialData }: { data: Account[] }) {
 
   return (
     <div className="mx-4 lg:mx-6 rounded-2xl bg-white/65 backdrop-blur-sm dark:bg-white/6 border-[3px] border-white dark:border-white/10 shadow-sm overflow-hidden">
+      {/* Collapsible section header */}
+      <button
+        onClick={() => setExpanded(v => !v)}
+        className="w-full flex items-center justify-between px-4 lg:px-6 py-4 bg-transparent border-none cursor-pointer"
+        style={{ borderBottom: expanded ? "1px solid var(--border-subtle)" : "none" }}
+      >
+        <div style={{ textAlign: "left" }}>
+          <p className="text-sm font-semibold text-foreground">At-Risk Accounts</p>
+          <p className="text-xs text-muted-foreground">{data.length} accounts flagged · drag to reorder · filter by tier</p>
+        </div>
+        <span className="flex items-center justify-center size-6 rounded-full border bg-muted text-muted-foreground shrink-0">
+          {expanded ? <IconChevronUp size={12} /> : <IconChevronDown size={12} />}
+        </span>
+      </button>
+
+    {expanded && (
     <Tabs
       value={activeTab}
       onValueChange={setActiveTab}
@@ -514,6 +533,7 @@ export function DataTable({ data: initialData }: { data: Account[] }) {
         </div>
       </TabsContent>
     </Tabs>
+    )}
     </div>
   )
 }
@@ -559,7 +579,7 @@ function TableCellViewer({ item }: { item: Account }) {
           <div className="flex flex-col gap-2">
             <p className="font-medium text-muted-foreground uppercase tracking-wide text-xs">Churn Signals</p>
             <div className="flex flex-wrap gap-1.5">
-              {item.signals.split(",").map((s) => (
+              {(Array.isArray(item.signals) ? item.signals : item.signals.split(",")).map((s: string) => (
                 <Badge key={s.trim()} variant="secondary" className="text-xs">
                   {s.trim()}
                 </Badge>
