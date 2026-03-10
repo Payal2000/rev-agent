@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # LLM
     openai_api_key: str
-    openai_model: str = "gpt-4o"
+    openai_model: str = "gpt-4o-mini"
     openai_embedding_model: str = "text-embedding-3-small"
 
     # Database

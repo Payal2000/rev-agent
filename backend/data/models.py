@@ -241,6 +241,24 @@ class SchemaEmbedding(Base):
     )
 
 
+# ── chat_sessions ─────────────────────────────────────────────────────────────
+
+class ChatSession(Base):
+    __tablename__ = "chat_sessions"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    company_id = Column(UUID(as_uuid=False), ForeignKey("companies.id"), nullable=False)
+    session_id = Column(String(255), nullable=False, unique=True)  # LangGraph thread_id
+    title = Column(String(500), nullable=False, default="New Chat")
+    created_at = Column(DateTime(timezone=True), server_default=text("NOW()"))
+    updated_at = Column(DateTime(timezone=True), server_default=text("NOW()"), onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index("idx_chat_sessions_company", "company_id"),
+        Index("idx_chat_sessions_session_id", "session_id"),
+    )
+
+
 # ── rag_playbook (Action Agent) ───────────────────────────────────────────────
 
 class RagPlaybook(Base):

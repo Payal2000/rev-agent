@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from data.database import init_db
 from graph.graph import get_graph
-from api.routes import chat, webhook, approval, health, slack, discord, metrics, insights_data, forecast_data
+from api.routes import chat, chat_history, webhook, approval, health, slack, discord, metrics, insights_data, forecast_data
 
 logging.basicConfig(
     level=logging.INFO,
@@ -53,6 +53,7 @@ app.add_middleware(
 # ── Routes ────────────────────────────────────────────────────────────────────
 app.include_router(health.router, tags=["health"])
 app.include_router(chat.router, prefix="/api", tags=["chat"])
+app.include_router(chat_history.router, prefix="/api", tags=["chat"])
 app.include_router(webhook.router, prefix="/api", tags=["webhooks"])
 app.include_router(approval.router, prefix="/api", tags=["approvals"])
 app.include_router(slack.router, prefix="/api", tags=["slack"])
