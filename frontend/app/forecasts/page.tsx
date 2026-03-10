@@ -1,11 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useState } from "react";
 import { AT_RISK_ACCOUNTS, FORECAST_DATA } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/utils";
 import { KPI_COLORS } from "@/lib/kpi-colors";
 import Link from "next/link";
-import { ArrowRight, TrendingUp } from "lucide-react";
+import { ArrowRight, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardAction, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useLiveData } from "@/lib/hooks";
@@ -23,6 +24,7 @@ type ForecastApiResponse = { data: ForecastPoint[]; stats: { p30: number; p60: n
 export default function ForecastsPage() {
   const { data: forecast } = useLiveData<ForecastApiResponse>("/api/forecast/mrr", { data: FORECAST_DATA, stats: null });
   const { data: atRisk } = useLiveData("/api/metrics/at-risk-accounts", AT_RISK_ACCOUNTS);
+  const [tableExpanded, setTableExpanded] = useState(true);
 
   const stats = forecast.stats;
   const currentMrr = stats?.currentMrr ?? 423800;
@@ -81,12 +83,16 @@ export default function ForecastsPage() {
           </div>
           <div style={{ display: "flex", gap: 12, fontSize: 11.5, flexShrink: 0 }}>
             {[
-              { color: "var(--primary)", label: "Actual" },
-              { color: "color-mix(in oklab, var(--primary) 65%, transparent)", label: "P50 forecast" },
-              { color: "color-mix(in oklab, var(--primary) 26%, transparent)", label: "80% CI" },
+              { color: "#7c6eaa", label: "Actual", dashed: false },
+              { color: "#4880d4", label: "P50 forecast", dashed: true },
+              { color: "#4880d4", label: "80% CI", dashed: true, band: true },
             ].map(l => (
               <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-muted)" }}>
-                <span style={{ width: 20, height: 2, background: l.color, borderRadius: 1 }} />
+                {l.band ? (
+                  <span style={{ width: 20, height: 8, background: `${l.color}33`, border: `1px dashed ${l.color}88`, borderRadius: 2 }} />
+                ) : (
+                  <svg width="20" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke={l.color} strokeWidth="2.5" strokeDasharray={l.dashed ? "7 4" : "none"} /></svg>
+                )}
                 {l.label}
               </div>
             ))}
@@ -96,18 +102,57 @@ export default function ForecastsPage() {
       </div>
 
       {/* At-risk accounts */}
-      <div className={`${CARD} p-6 animate-fade-up delay-250`}>
-        <div className="section-header">
-          <div>
-            <h2 className="section-title">At-Risk Accounts</h2>
-            <p className="section-subtitle">ML churn prediction model · {atRisk.length} accounts flagged</p>
+      <div className={`${CARD} animate-fade-up delay-250`} style={{ overflow: "hidden" }}>
+        {/* Collapsible header */}
+        <button
+          onClick={() => setTableExpanded(v => !v)}
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "20px 24px",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            borderBottom: tableExpanded ? "1px solid var(--border-subtle)" : "none",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ textAlign: "left" }}>
+              <h2 className="section-title" style={{ margin: 0 }}>At-Risk Accounts</h2>
+              <p className="section-subtitle" style={{ margin: 0 }}>ML churn prediction model · {atRisk.length} accounts flagged</p>
+            </div>
           </div>
-          <Link href="/chat" className="inline-link" style={{ flexShrink: 0 }}>
-            Get recommendations <ArrowRight size={10} />
-          </Link>
-        </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <Link
+              href="/chat"
+              className="inline-link"
+              style={{ flexShrink: 0 }}
+              onClick={e => e.stopPropagation()}
+            >
+              Get recommendations <ArrowRight size={10} />
+            </Link>
+            <span style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 26,
+              height: 26,
+              borderRadius: "50%",
+              background: "var(--bg-elevated)",
+              border: "1px solid var(--border)",
+              color: "var(--text-muted)",
+              flexShrink: 0,
+            }}>
+              {tableExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </span>
+          </div>
+        </button>
 
-        <div className="table-scroll">
+        {tableExpanded && (
+        <div style={{ padding: "0 24px 24px" }}>
+        <div className="table-scroll" style={{ marginTop: 16 }}>
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: 560 }}>
             <thead>
               <tr>
@@ -174,6 +219,8 @@ export default function ForecastsPage() {
             </span>
           </span>
         </div>
+        </div>
+        )}
       </div>
     </div>
   );
