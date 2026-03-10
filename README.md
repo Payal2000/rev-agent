@@ -14,11 +14,16 @@ Built with LangGraph · FastAPI · Next.js · PostgreSQL · pgvector · OpenAI G
 
 | Capability | How |
 |---|---|
-| **Natural language data queries** | Type "What's our MRR by pricing tier?" — gets converted to safe SQL, executed, and returned with structured results |
-| **Proactive anomaly detection** | Z-score analysis on 90-day rolling metrics. Alerts fire on Slack, Discord, and email automatically |
-| **Revenue forecasting** | Holt-Winters exponential smoothing + LLM narrative for 30/60/90-day MRR and churn projections |
+| **Natural language data queries** | Type "What's our MRR by pricing tier?" — converted to safe SQL via pgvector schema RAG, executed, and returned with structured results |
+| **Inline chart generation** | Query results auto-detected as line, bar, or pie charts and rendered directly in the chat response |
+| **Proactive anomaly detection** | Z-score analysis on 90-day rolling metrics displayed on the Insights page with severity badges |
+| **Revenue forecasting** | Holt-Winters exponential smoothing with 30/60/90-day MRR projections and 80%/95% confidence bands |
 | **Actionable recommendations** | RAG-powered playbook retrieves ranked strategies with estimated revenue impact |
-| **Human-in-the-loop approvals** | Every recommended action requires explicit approval before execution — from the web UI, Slack, or Discord |
+| **Human-in-the-loop approvals** | Every recommended action requires explicit approval before execution — rendered as an approval card in the chat UI |
+| **Persistent chat sessions** | All sessions stored in PostgreSQL; restored from LangGraph checkpoints; listed in the sidebar with delete support |
+| **Multi-turn conversation context** | Query agent receives conversation history so follow-up questions like "show me more" work correctly |
+| **Command palette search** | Press ⌘K anywhere to open a spotlight-style search over pages and pre-built AI queries |
+| **Collapsible data tables** | Every table across Dashboard, Insights, and Forecasts pages can be collapsed/expanded |
 | **Full audit trail** | Every agent decision, SQL query, and approval is logged to PostgreSQL |
 
 <img width="1707" height="944" alt="Screenshot 2026-03-09 at 7 36 41 PM" src="https://github.com/user-attachments/assets/63ebea3c-73d0-4117-abbf-a5994e96f547" />
@@ -184,7 +189,11 @@ This starts:
 ### 3. Seed demo data
 
 ```bash
+# Seed subscription and metrics data
 docker compose exec backend python data/seed.py
+
+# Seed schema embeddings for SQL RAG (requires OPENAI_API_KEY)
+docker compose exec -w /app backend python -m data.seed_schema_embeddings
 ```
 
 ### 4. Start the frontend
@@ -199,12 +208,18 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### 5. Try it
 
+Open [http://localhost:3000](http://localhost:3000) and navigate to the **Chat** page. Try:
+
 ```
 What is our MRR this month?
-Show me churn anomalies in the last 7 days
-Forecast revenue for the next 90 days
-What are the top strategies to reduce churn?
+Show me churn rate trends over the last 6 months
+Which accounts are at highest risk of churning?
+Forecast MRR for the next 90 days
+What anomalies were detected this month?
+Show subscription breakdown by tier
 ```
+
+Or press **⌘K** anywhere to open the command palette and pick a pre-built query.
 
 
 
@@ -215,7 +230,16 @@ What are the top strategies to reduce churn?
 | `GET` | `/health` | Health check |
 | `POST` | `/api/chat` | SSE streaming — runs the agent pipeline |
 | `POST` | `/api/approve/{session_id}` | Resume a graph paused at approval |
-| `GET` | `/api/approval/{session_id}/status` | Check if a session is awaiting approval |
+| `GET` | `/api/chat/sessions` | List all chat sessions for the tenant |
+| `GET` | `/api/chat/sessions/{id}/messages` | Restore messages for a session from LangGraph checkpoint |
+| `DELETE` | `/api/chat/sessions/{id}` | Delete a chat session |
+| `GET` | `/api/metrics/summary` | KPI summary with month-over-month deltas |
+| `GET` | `/api/metrics/mrr-trend` | MRR waterfall data (last N months) |
+| `GET` | `/api/metrics/tier-breakdown` | Subscriber count by tier (Starter/Growth/Enterprise) |
+| `GET` | `/api/metrics/at-risk-accounts` | Churn risk table with ML scores |
+| `GET` | `/api/insights/anomalies` | Anomaly alerts with severity filter |
+| `GET` | `/api/insights/signals` | Revenue signal KPIs |
+| `GET` | `/api/forecast/mrr` | Holt-Winters MRR projections with confidence intervals |
 | `POST` | `/api/webhook/stripe` | Stripe webhook ingestion |
 | `POST` | `/api/slack/events` | Slack slash command handler |
 | `POST` | `/api/slack/interactions` | Slack button interaction callbacks |
@@ -378,6 +402,7 @@ SECRET_KEY=change-this-in-production
 | [docs/discord-integration.md](docs/discord-integration.md) | Discord webhook + application command setup |
 | [docs/email-langgraph.md](docs/email-langgraph.md) | Email patterns in LangGraph, SendGrid setup |
 | [RevAgent_Complete_Blueprint.md](RevAgent_Complete_Blueprint.md) | Full technical blueprint and design decisions |
+| [BUGS_AND_ERRORS.md](BUGS_AND_ERRORS.md) | All bugs encountered during development with root cause analysis and solutions |
 
 
 ## Author
