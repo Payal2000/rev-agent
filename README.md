@@ -366,6 +366,9 @@ SECRET_KEY=change-this-in-production
 | Database | [Supabase](https://supabase.com) or [Neon](https://neon.tech) — PostgreSQL with pgvector |
 | Redis | [Upstash](https://upstash.com) — serverless Redis for Celery |
 
+<img width="1681" height="709" alt="Screenshot 2026-03-09 at 8 13 04 PM" src="https://github.com/user-attachments/assets/e4a74f9a-7b6c-4050-838f-c1e8ad9b9345" />
+
+
 
 ## Documentation
 
