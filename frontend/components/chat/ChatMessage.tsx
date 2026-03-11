@@ -77,7 +77,7 @@ function InlineChart({ chart }: { chart: ChartData }) {
 interface Props {
   message: ChatMessageType;
   isStreaming?: boolean;
-  onApprovalDecision?: (approved: boolean) => void;
+  onApprovalDecision?: (approved: boolean, message?: string) => void;
 }
 
 function renderMarkdown(text: string): React.ReactNode {
@@ -204,11 +204,11 @@ export default function ChatMessage({ message, isStreaming, onApprovalDecision }
       <div className="animate-fade-up" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16, opacity: 0 }}>
         <div style={{ maxWidth: "72%", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
           <div style={{
-            background: "color-mix(in oklab, var(--accent) 85%, #dbe8dd)",
+            background: "#1a1a1a",
             borderRadius: "14px 14px 4px 14px",
             padding: "10px 15px",
             fontSize: 13.5,
-            color: "var(--accent-ink)",
+            color: "#ffffff",
             lineHeight: 1.55,
             boxShadow: "0 5px 16px rgba(45, 58, 50, 0.16)",
           }}>
@@ -237,7 +237,7 @@ export default function ChatMessage({ message, isStreaming, onApprovalDecision }
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: "var(--accent)",
+        color: "#71717a",
       }}>
         <Bot size={14} />
       </div>
@@ -275,7 +275,7 @@ export default function ChatMessage({ message, isStreaming, onApprovalDecision }
                   display: "inline-block",
                   width: 2,
                   height: 14,
-                  background: "var(--accent)",
+                  background: "#71717a",
                   marginLeft: 2,
                   verticalAlign: "middle",
                 }}

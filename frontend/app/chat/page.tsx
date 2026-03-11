@@ -225,7 +225,7 @@ function ChatInner() {
               alignItems: "center",
               gap: 8,
               padding: "9px 12px",
-              background: "var(--primary)",
+              background: "#18181b",
               border: "none",
               borderRadius: 10,
               cursor: "pointer",
@@ -270,7 +270,7 @@ function ChatInner() {
                 gap: 4,
                 padding: "8px 6px 8px 10px",
                 borderRadius: 8,
-                background: s.session_id === sessionId ? "var(--accent-soft)" : "transparent",
+                background: s.session_id === sessionId ? "#f4f4f5" : "transparent",
                 cursor: "pointer",
                 marginBottom: 2,
                 transition: "background 120ms",
@@ -291,7 +291,7 @@ function ChatInner() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
                   fontSize: 12.5,
-                  color: s.session_id === sessionId ? "var(--accent-ink)" : "var(--text-primary)",
+                  color: s.session_id === sessionId ? "#18181b" : "var(--text-primary)",
                   fontWeight: s.session_id === sessionId ? 600 : 400,
                   whiteSpace: "nowrap",
                   overflow: "hidden",
@@ -357,14 +357,14 @@ function ChatInner() {
                   width: 52,
                   height: 52,
                   borderRadius: 16,
-                  background: "var(--accent-soft)",
+                  background: "#f4f4f5",
                   border: "1px solid var(--border-strong)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   margin: "0 auto 14px",
                 }}>
-                  <Sparkles size={21} color="var(--accent-ink)" />
+                  <Sparkles size={21} color="#3f3f46" />
                 </div>
                 <h2 style={{
                   margin: 0,
@@ -434,14 +434,14 @@ function ChatInner() {
                   key={msg.id}
                   message={msg}
                   isStreaming={isLoading && i === messages.length - 1 && msg.role === "assistant"}
-                  onApprovalDecision={(approved) => {
+                  onApprovalDecision={(approved, agentMessage) => {
                     setMessages(prev => prev.map(m =>
                       m.id === msg.id
                         ? {
                             ...m,
                             content: m.content + (approved
-                              ? "\n\n[status:approved] Approved and queued for execution."
-                              : "\n\n[status:rejected] Rejected by operator."),
+                              ? `\n\n[status:approved] ${agentMessage || "Approved and queued for execution."}`
+                              : `\n\n[status:rejected] ${agentMessage || "Rejected by operator."}`),
                             approvalContext: undefined,
                           }
                         : m
@@ -483,7 +483,7 @@ function ChatInner() {
                 }}
                 onFocus={e => {
                   e.target.style.borderColor = "var(--border-strong)";
-                  e.target.style.boxShadow = "0 0 0 3px color-mix(in oklab, var(--primary) 20%, transparent)";
+                  e.target.style.boxShadow = "0 0 0 3px rgba(0,0,0,0.10)";
                 }}
                 onBlur={e => {
                   e.target.style.borderColor = "var(--border)";
@@ -497,8 +497,8 @@ function ChatInner() {
               style={{
                 width: 46,
                 height: 46,
-                background: input.trim() && !isLoading ? "var(--primary)" : "var(--bg-elevated)",
-                border: `1px solid ${input.trim() && !isLoading ? "var(--primary)" : "var(--border)"}`,
+                background: input.trim() && !isLoading ? "#18181b" : "var(--bg-elevated)",
+                border: `1px solid ${input.trim() && !isLoading ? "#18181b" : "var(--border)"}`,
                 borderRadius: 12,
                 cursor: input.trim() && !isLoading ? "pointer" : "not-allowed",
                 display: "flex",
