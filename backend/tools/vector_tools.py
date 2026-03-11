@@ -15,7 +15,10 @@ openai_client = AsyncOpenAI(api_key=settings.openai_api_key)
 # Results below these thresholds are dropped rather than passed to the LLM.
 # A low-similarity result is worse than no result — the LLM will hallucinate
 # SQL or recommendations anchored to context that doesn't match the question.
-SCHEMA_SIMILARITY_THRESHOLD = 0.55
+# 0.45 keeps common KPI + anomaly prompts (e.g., "MRR this month",
+# "churn anomalies last 30 days") from being incorrectly rejected while
+# still filtering clearly weak matches.
+SCHEMA_SIMILARITY_THRESHOLD = 0.45
 PLAYBOOK_SIMILARITY_THRESHOLD = 0.55
 MEMORY_SIMILARITY_THRESHOLD = 0.50
 
