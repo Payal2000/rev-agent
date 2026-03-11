@@ -34,7 +34,7 @@ export function SectionCards({ inner }: { inner?: boolean } = {}) {
             {formatMrr(metrics.mrr)}
           </CardTitle>
           <CardAction>
-            <Badge variant="outline">
+            <Badge variant="outline" className="border-black/25 bg-white/60 text-foreground">
               <IconTrendingUp />
               +{metrics.mrrDelta}%
             </Badge>
@@ -59,7 +59,7 @@ export function SectionCards({ inner }: { inner?: boolean } = {}) {
             {metrics.subscribers.toLocaleString()}
           </CardTitle>
           <CardAction>
-            <Badge variant="outline">
+            <Badge variant="outline" className="border-black/25 bg-white/60 text-foreground">
               <IconTrendingDown />
               {metrics.subscribersDelta}
             </Badge>
@@ -84,7 +84,7 @@ export function SectionCards({ inner }: { inner?: boolean } = {}) {
             {metrics.nrr}%
           </CardTitle>
           <CardAction>
-            <Badge variant="outline">
+            <Badge variant="outline" className="border-black/25 bg-white/60 text-foreground">
               <IconTrendingUp />
               +{(metrics.nrr - 100).toFixed(1)}%
             </Badge>
@@ -108,7 +108,7 @@ export function SectionCards({ inner }: { inner?: boolean } = {}) {
             {metrics.churnRate}%
           </CardTitle>
           <CardAction>
-            <Badge variant="outline">
+            <Badge variant="outline" className="border-black/25 bg-white/60 text-foreground">
               {churnUp ? <IconTrendingUp /> : <IconTrendingDown />}
               {churnUp ? "+" : ""}
               {(metrics.churnRate - metrics.churnRatePrev).toFixed(1)}%

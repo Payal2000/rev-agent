@@ -57,7 +57,7 @@ export default function ForecastsPage() {
                   {formatCurrency(p.value, true)}
                 </CardTitle>
                 <CardAction>
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="border-black/25 bg-white/60 text-foreground">
                     <TrendingUp className="size-3" />
                     {p.trend}
                   </Badge>
@@ -170,7 +170,7 @@ export default function ForecastsPage() {
                     {acc.name}
                   </td>
                   <td style={{ padding: "17px 20px", borderBottom: i < atRisk.length - 1 ? "1px solid #ebebeb" : "none" }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 999, background: acc.tier === "Enterprise" ? KPI_COLORS.sky.bg : KPI_COLORS.purple.bg, color: acc.tier === "Enterprise" ? KPI_COLORS.sky.text : KPI_COLORS.purple.text, border: `1px solid ${acc.tier === "Enterprise" ? KPI_COLORS.sky.text : KPI_COLORS.purple.text}33` }}>
+                    <span style={{ fontSize: 10, fontWeight: 400, padding: "1px 7px", borderRadius: 999, background: acc.tier === "Enterprise" ? KPI_COLORS.sky.bg : acc.tier === "Growth" ? KPI_COLORS.amber.bg : KPI_COLORS.green.bg, color: acc.tier === "Enterprise" ? KPI_COLORS.sky.text : acc.tier === "Growth" ? KPI_COLORS.amber.text : KPI_COLORS.green.text, border: `1px solid ${acc.tier === "Enterprise" ? KPI_COLORS.sky.text : acc.tier === "Growth" ? KPI_COLORS.amber.text : KPI_COLORS.green.text}33`, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
                       {acc.tier}
                     </span>
                   </td>

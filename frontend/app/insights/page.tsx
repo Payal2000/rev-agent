@@ -28,9 +28,9 @@ const CARD = "bg-white/65 backdrop-blur-sm dark:bg-white/6 border-[3px] border-w
 
 // Segment colors — fill is pastel bg, text matches from KPI_COLORS
 const SEGMENT_PASTEL = {
-  Enterprise: { fill: KPI_COLORS.purple.bg, text: KPI_COLORS.purple.text },
-  Growth:     { fill: KPI_COLORS.sky.bg,    text: KPI_COLORS.sky.text    },
-  Starter:    { fill: KPI_COLORS.green.bg,  text: KPI_COLORS.green.text  },
+  Enterprise: { fill: KPI_COLORS.sky.bg,   text: KPI_COLORS.sky.text   },
+  Growth:     { fill: KPI_COLORS.amber.bg, text: KPI_COLORS.amber.text },
+  Starter:    { fill: KPI_COLORS.green.bg, text: KPI_COLORS.green.text },
 } as const;
 
 const segmentChartConfig: ChartConfig = {
@@ -98,12 +98,13 @@ function RevenueSegmentDonut({ segmentHealth }: { segmentHealth: typeof SEGMENT_
 }
 
 function RetentionCell({ value }: { value: number | null }) {
-  if (value === null) return <td style={{ padding: "14px 10px", textAlign: "center", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 13 }}>—</td>;
-  const bg = value >= 90 ? "rgba(5,150,105,0.12)" : value >= 80 ? "rgba(234,179,8,0.12)" : "rgba(220,38,38,0.12)";
-  const color = value >= 90 ? "var(--success)" : value >= 80 ? "var(--warning)" : "var(--danger)";
+  if (value === null) return <td style={{ padding: "14px 10px", textAlign: "center", borderBottom: "1px solid #ebebeb", color: "#c0c0c0", fontSize: 13 }}>—</td>;
+  const bg = value >= 90 ? "rgba(5,150,105,0.10)" : value >= 80 ? "rgba(234,179,8,0.12)" : "rgba(220,38,38,0.10)";
+  const border = value >= 90 ? "rgba(5,150,105,0.20)" : value >= 80 ? "rgba(234,179,8,0.25)" : "rgba(220,38,38,0.20)";
+  const color = value >= 90 ? "#059669" : value >= 80 ? "#b45309" : "#dc2626";
   return (
-    <td style={{ padding: "14px 10px", textAlign: "center", borderBottom: "1px solid var(--border)" }}>
-      <span style={{ background: bg, color, fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 400, padding: "4px 10px", borderRadius: 999 }}>
+    <td style={{ padding: "14px 10px", textAlign: "center", borderBottom: "1px solid #ebebeb" }}>
+      <span style={{ background: bg, color, fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 400, padding: "3px 8px", borderRadius: 5, border: `1px solid ${border}`, display: "inline-block" }}>
         {value}%
       </span>
     </td>
@@ -133,7 +134,7 @@ export default function InsightsPage() {
   };
 
   const FILTERS: { key: Severity; label: string; activeBg: string; activeBorder: string; activeText: string; dot: string }[] = [
-    { key: "all",      label: "All",      activeBg: KPI_COLORS.purple.bg, activeBorder: `${KPI_COLORS.purple.text}44`, activeText: KPI_COLORS.purple.text, dot: "" },
+    { key: "all",      label: "All",      activeBg: KPI_COLORS.sky.bg,    activeBorder: `${KPI_COLORS.sky.text}44`,    activeText: KPI_COLORS.sky.text,    dot: "" },
     { key: "critical", label: "Critical", activeBg: KPI_COLORS.red.bg,    activeBorder: `${KPI_COLORS.red.text}44`,    activeText: KPI_COLORS.red.text,    dot: KPI_COLORS.red.text    },
     { key: "high",     label: "High",     activeBg: KPI_COLORS.orange.bg, activeBorder: `${KPI_COLORS.orange.text}44`, activeText: KPI_COLORS.orange.text, dot: KPI_COLORS.orange.text },
     { key: "medium",   label: "Medium",   activeBg: KPI_COLORS.yellow.bg, activeBorder: `${KPI_COLORS.yellow.text}44`, activeText: KPI_COLORS.yellow.text, dot: KPI_COLORS.yellow.text },
@@ -158,7 +159,7 @@ export default function InsightsPage() {
                     {s.value}
                   </CardTitle>
                   <CardAction>
-                    <Badge variant="outline">
+                    <Badge variant="outline" className="border-black/25 bg-white/60 text-foreground">
                       {s.trend === "up" ? <TrendingUp className="size-3" /> : s.trend === "down" ? <TrendingDown className="size-3" /> : <Minus className="size-3" />}
                       {s.delta}
                     </Badge>
@@ -194,7 +195,7 @@ export default function InsightsPage() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {digest.highlights.map((h: typeof WEEKLY_DIGEST.highlights[0] & { query?: string }, i: number) => {
-              const kc = h.type === "warning" ? KPI_COLORS.orange : h.type === "positive" ? KPI_COLORS.green : KPI_COLORS.purple;
+              const kc = h.type === "warning" ? KPI_COLORS.orange : h.type === "positive" ? KPI_COLORS.green : KPI_COLORS.sky;
               const IconEl = h.type === "warning" ? AlertTriangle : h.type === "positive" ? Lightbulb : Activity;
               const cfg = { icon: <IconEl size={15} color={kc.text} />, iconBg: kc.bg, iconBorder: `${kc.text}44`, linkColor: kc.text };
               const chatHref = h.query
@@ -243,7 +244,7 @@ export default function InsightsPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.3 }}>{s.signal}</p>
                       <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3 }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 999, background: kc.text, color: (kc === KPI_COLORS.yellow || kc === KPI_COLORS.green) ? "#1a1a1a" : "white", letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
+                        <span style={{ fontSize: 10, fontWeight: 400, padding: "1px 7px", borderRadius: 999, background: kc.bg, color: kc.text, border: `1px solid ${kc.text}33`, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
                           {s.severity}
                         </span>
                         <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{s.accounts} accounts</span>
@@ -267,13 +268,13 @@ export default function InsightsPage() {
         <div className={`${CARD}`} style={{ overflow: "hidden" }}>
           <button
             onClick={() => setCohortExpanded(v => !v)}
-            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", background: "none", border: "none", cursor: "pointer", borderBottom: cohortExpanded ? "1px solid var(--border-subtle)" : "none" }}
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", background: "none", border: "none", cursor: "pointer", borderBottom: cohortExpanded ? "1px solid #ebebeb" : "none" }}
           >
             <div style={{ textAlign: "left" }}>
               <h2 className="section-title" style={{ margin: 0 }}>Cohort Retention</h2>
               <p className="section-subtitle" style={{ margin: 0 }}>Monthly retention by signup cohort</p>
             </div>
-            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: "50%", background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-muted)", flexShrink: 0 }}>
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: "50%", background: "#f4f4f5", border: "1px solid #e4e4e7", color: "#71717a", flexShrink: 0 }}>
               {cohortExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
             </span>
           </button>
@@ -320,7 +321,7 @@ export default function InsightsPage() {
       <div className={`${CARD}`} style={{ overflow: "hidden" }}>
         <button
           onClick={() => setGrowthExpanded(v => !v)}
-          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", background: "none", border: "none", cursor: "pointer", borderBottom: growthExpanded ? "1px solid var(--border-subtle)" : "none" }}
+          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", background: "none", border: "none", cursor: "pointer", borderBottom: growthExpanded ? "1px solid #ebebeb" : "none" }}
         >
           <div style={{ textAlign: "left" }}>
             <h2 className="section-title" style={{ margin: 0 }}>Growth Opportunities</h2>
@@ -335,7 +336,7 @@ export default function InsightsPage() {
             >
               Get playbook <ArrowRight size={10} />
             </Link>
-            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: "50%", background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-muted)", flexShrink: 0 }}>
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: "50%", background: "#f4f4f5", border: "1px solid #e4e4e7", color: "#71717a", flexShrink: 0 }}>
               {growthExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
             </span>
           </div>
@@ -356,7 +357,7 @@ export default function InsightsPage() {
                 <tr key={acc.id}>
                   <td style={{ padding: "17px 20px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)", borderBottom: i < growthOpportunities.length - 1 ? "1px solid var(--border)" : "none" }}>{acc.name}</td>
                   <td style={{ padding: "17px 20px", borderBottom: i < growthOpportunities.length - 1 ? "1px solid var(--border)" : "none" }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 999, background: acc.tier === "Enterprise" ? KPI_COLORS.sky.bg : acc.tier === "Growth" ? KPI_COLORS.purple.bg : KPI_COLORS.green.bg, color: acc.tier === "Enterprise" ? KPI_COLORS.sky.text : acc.tier === "Growth" ? KPI_COLORS.purple.text : KPI_COLORS.green.text, border: `1px solid ${acc.tier === "Enterprise" ? KPI_COLORS.sky.text : acc.tier === "Growth" ? KPI_COLORS.purple.text : KPI_COLORS.green.text}33` }}>
+                    <span style={{ fontSize: 10, fontWeight: 400, padding: "1px 7px", borderRadius: 999, background: acc.tier === "Enterprise" ? KPI_COLORS.sky.bg : acc.tier === "Growth" ? KPI_COLORS.amber.bg : KPI_COLORS.green.bg, color: acc.tier === "Enterprise" ? KPI_COLORS.sky.text : acc.tier === "Growth" ? KPI_COLORS.amber.text : KPI_COLORS.green.text, border: `1px solid ${acc.tier === "Enterprise" ? KPI_COLORS.sky.text : acc.tier === "Growth" ? KPI_COLORS.amber.text : KPI_COLORS.green.text}33`, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
                       {acc.tier}
                     </span>
                   </td>
@@ -421,13 +422,13 @@ export default function InsightsPage() {
                   </div>
                   {/* Metric badges */}
                   <div style={{ display: "flex", gap: 7, flexWrap: "wrap" as const }}>
-                    <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 400, background: KPI_COLORS.amber.bg, color: KPI_COLORS.amber.text, padding: "2px 8px", borderRadius: 999, border: `1px solid ${KPI_COLORS.amber.text}33` }}>
+                    <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", fontWeight: 400, background: KPI_COLORS.amber.bg, color: KPI_COLORS.amber.text, padding: "2px 8px", borderRadius: 999, border: `1px solid ${KPI_COLORS.amber.text}33` }}>
                       {formatCurrency(seg.mrr)}
                     </span>
-                    <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 400, background: seg.churnRate > 3 ? KPI_COLORS.red.bg : KPI_COLORS.green.bg, color: seg.churnRate > 3 ? KPI_COLORS.red.text : KPI_COLORS.green.text, padding: "2px 8px", borderRadius: 999, border: `1px solid ${seg.churnRate > 3 ? KPI_COLORS.red.text : KPI_COLORS.green.text}33` }}>
+                    <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", fontWeight: 400, background: seg.churnRate > 3 ? KPI_COLORS.red.bg : KPI_COLORS.green.bg, color: seg.churnRate > 3 ? KPI_COLORS.red.text : KPI_COLORS.green.text, padding: "2px 8px", borderRadius: 999, border: `1px solid ${seg.churnRate > 3 ? KPI_COLORS.red.text : KPI_COLORS.green.text}33` }}>
                       {seg.churnRate}% churn
                     </span>
-                    <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 400, background: KPI_COLORS.teal.bg, color: KPI_COLORS.teal.text, padding: "2px 8px", borderRadius: 999, border: `1px solid ${KPI_COLORS.teal.text}33` }}>
+                    <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", fontWeight: 400, background: KPI_COLORS.teal.bg, color: KPI_COLORS.teal.text, padding: "2px 8px", borderRadius: 999, border: `1px solid ${KPI_COLORS.teal.text}33` }}>
                       {seg.nrr}% NRR
                     </span>
                   </div>
@@ -443,7 +444,7 @@ export default function InsightsPage() {
           <p className="section-subtitle" style={{ marginBottom: 14 }}>Payments · Billing · Conversions</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {operationalAlerts.map((a: typeof OPERATIONAL_ALERTS[0]) => {
-              const kc = a.status === "critical" ? KPI_COLORS.red : a.status === "warning" ? KPI_COLORS.orange : KPI_COLORS.purple;
+              const kc = a.status === "critical" ? KPI_COLORS.red : a.status === "warning" ? KPI_COLORS.orange : KPI_COLORS.sky;
               const AlertIcon = a.status === "critical" ? AlertTriangle : a.status === "warning" ? AlertCircle : Info;
               const alertHref = `/chat?new=1&q=${encodeURIComponent(`Investigate operational alert: ${a.label} (${a.value}). What is causing this and what should we do?`)}`;
               return (
@@ -456,7 +457,7 @@ export default function InsightsPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.3 }}>{a.label}</p>
                       <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3 }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 999, background: kc.text, color: "white", letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
+                        <span style={{ fontSize: 10, fontWeight: 400, padding: "1px 7px", borderRadius: 999, background: kc.bg, color: kc.text, border: `1px solid ${kc.text}33`, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
                           {a.status}
                         </span>
                         <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{a.sub}</span>
@@ -503,7 +504,7 @@ export default function InsightsPage() {
                     border: `1px solid ${active ? f.activeBorder : "var(--border)"}`,
                     background: active ? f.activeBg : "var(--bg-surface)",
                     color: active ? f.activeText : "var(--text-muted)",
-                    fontSize: 11.5, fontWeight: active ? 600 : 500,
+                    fontSize: 11.5, fontWeight: 400,
                     cursor: "pointer", transition: "all 150ms",
                   }}
                 >
@@ -512,7 +513,7 @@ export default function InsightsPage() {
                   <span style={{
                     background: active ? "rgba(255,255,255,0.55)" : "var(--bg-elevated)",
                     color: active ? f.activeText : "var(--text-muted)",
-                    padding: "1px 6px", borderRadius: 999, fontSize: 10, fontWeight: 700,
+                    padding: "1px 6px", borderRadius: 999, fontSize: 10, fontWeight: 400,
                     border: `1px solid ${active ? f.activeBorder : "var(--border)"}`,
                   }}>
                     {counts[f.key]}

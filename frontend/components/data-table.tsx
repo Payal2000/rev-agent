@@ -121,8 +121,8 @@ function riskLabel(score: number) {
 }
 
 function tierColor(tier: string) {
-  if (tier === "Enterprise") return "text-violet-400"
-  if (tier === "Growth") return "text-sky-400"
+  if (tier === "Enterprise") return "text-sky-500"
+  if (tier === "Growth") return "text-amber-500"
   return "text-slate-400"
 }
 
@@ -614,7 +614,7 @@ function TableCellViewer({ item }: { item: Account }) {
           </div>
         </div>
         <DrawerFooter>
-          <Button>
+          <Button className="bg-[#18181b] hover:bg-[#27272a] text-white border-0">
             <IconMessageChatbot className="size-4 mr-2" />
             Ask AI about this account
           </Button>
