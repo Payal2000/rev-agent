@@ -170,11 +170,24 @@ async def _generate_recommendations(
 ) -> list[Recommendation]:
     """LLM generates ranked recommendations from playbook entries and context."""
 
-    # Format playbook context
-    playbook_context = "\n\n".join([
-        f"Strategy: {e['title']}\n{e['content']}\nEstimated impact: {e['estimated_impact']}"
-        for e in playbook_entries[:4]
-    ])
+    # Format playbook context — include similarity score so the LLM can weight
+    # poor-fit strategies appropriately rather than treating all entries equally.
+    # Entries below 0.65 similarity are flagged as weak matches.
+    if playbook_entries:
+        playbook_context = "\n\n".join([
+            (
+                f"Strategy: {e['title']} (relevance: {e['similarity']:.2f}"
+                + (" — WEAK MATCH, use with caution" if e['similarity'] < 0.65 else "")
+                + f")\n{e['content']}\nEstimated impact: {e['estimated_impact']}"
+            )
+            for e in playbook_entries[:4]
+        ])
+    else:
+        playbook_context = (
+            "No closely matching playbook strategies found for this situation. "
+            "Generate recommendations based on general SaaS best practices and the anomaly data alone. "
+            "Do NOT invent specific strategies — be conservative and flag that these are first-principles recommendations."
+        )
 
     # Format anomaly context
     anomaly_context = "\n".join([
@@ -206,7 +219,15 @@ async def _generate_recommendations(
                     "Based on detected anomalies and available playbook strategies, "
                     "generate 3 ranked, specific action recommendations. "
                     "Prioritize by estimated revenue impact. "
-                    "Be specific about the action, timeline, and expected outcome."
+                    "Be specific about the action, timeline, and expected outcome.\n\n"
+                    "Retrieval quality rules:\n"
+                    "- Each strategy is labeled with a relevance score (0.0–1.0). "
+                    "Scores >= 0.65 are strong matches; use them confidently.\n"
+                    "- Scores < 0.65 are labeled WEAK MATCH. You may reference them but "
+                    "must qualify the recommendation (e.g. 'this may not directly apply').\n"
+                    "- If no strategies are provided, generate conservative first-principles "
+                    "advice and explicitly state that no playbook match was found.\n"
+                    "- Never present a weak-match strategy as a confident best practice."
                 )
             },
             {

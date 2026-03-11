@@ -1,6 +1,7 @@
 """Chat route — SSE streaming endpoint for the agent pipeline."""
 import json
 import logging
+import re
 import uuid
 from typing import AsyncGenerator
 
@@ -43,6 +44,106 @@ async def _upsert_session(session_id: str, company_id: str, title: str) -> None:
         logger.warning(f"[Chat] Failed to upsert session: {e}")
 
 
+# ── Conversational bypass ─────────────────────────────────────────────────────
+
+_CONVERSATIONAL_PATTERNS = re.compile(
+    r"^(what (do you mean|did you mean|does that mean)|"
+    r"(can you )?(explain|clarify|elaborate)(( on| that| more| further)?)?|"
+    r"(i don'?t understand|not sure what you mean|confused)|"
+    r"(what|how) (do you mean|did you|are you saying)|"
+    r"(yes|no|ok(ay)?|sure|got it|thanks?|thank you|makes sense|"
+    r"go ahead|sounds good|please do|alright|cool|great)[!.?]?)$",
+    re.IGNORECASE,
+)
+
+_DATA_KEYWORDS = re.compile(
+    r"\b(mrr|arr|churn|revenue|subscription|customer|account|tier|"
+    r"forecast|trend|anomal|metric|report|data|sql|query|"
+    r"growth|retention|expansion|contraction|cohort|segment)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_conversational(message: str) -> bool:
+    """Return True if the message is a follow-up / clarification with no data intent."""
+    stripped = message.strip()
+    # Very short with no data keywords
+    if len(stripped.split()) <= 5 and not _DATA_KEYWORDS.search(stripped):
+        return True
+    # Matches common follow-up patterns
+    if _CONVERSATIONAL_PATTERNS.match(stripped) and not _DATA_KEYWORDS.search(stripped):
+        return True
+    return False
+
+
+async def _stream_conversational(
+    graph,
+    message: str,
+    session_id: str,
+    tenant_id: str,
+    config: dict,
+) -> AsyncGenerator[str, None]:
+    """Respond directly using conversation history — no agent pipeline."""
+
+    def sse_event(event_type: str, data: dict) -> str:
+        return f"data: {json.dumps({'type': event_type, **data})}\n\n"
+
+    # Pull prior conversation from graph checkpoint
+    history_lines: list[str] = []
+    try:
+        snapshot = await graph.aget_state(config)
+        if snapshot:
+            for msg in snapshot.values.get("messages", [])[-10:]:
+                cls = msg.__class__.__name__
+                if "HumanMessage" in cls:
+                    history_lines.append(f"User: {msg.content}")
+                elif "AIMessage" in cls and getattr(msg, "content", ""):
+                    history_lines.append(f"Assistant: {msg.content[:400]}")
+    except Exception as e:
+        logger.warning(f"[Chat] Could not load history for conversational reply: {e}")
+
+    history_block = "\n".join(history_lines) if history_lines else "(no prior context)"
+
+    prompt = (
+        f"You are a helpful SaaS revenue analyst assistant.\n\n"
+        f"Conversation so far:\n{history_block}\n\n"
+        f"The user just said: \"{message}\"\n\n"
+        f"Reply concisely and directly. If it's a clarification request, explain the "
+        f"previous response in simpler terms. Do not run any data queries."
+    )
+
+    reply = ""
+    try:
+        oai = get_async_openai()
+        resp = await oai.chat.completions.create(
+            model=settings.openai_model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.4,
+            max_tokens=300,
+        )
+        reply = resp.choices[0].message.content.strip()
+    except Exception as e:
+        logger.warning(f"[Chat] Conversational LLM call failed: {e}")
+        reply = "Sorry, I couldn't process that. Could you rephrase?"
+
+    yield sse_event("token", {"content": reply})
+
+    # Persist the exchange into the graph checkpoint so context is preserved
+    try:
+        await graph.aupdate_state(config, {
+            "messages": [
+                HumanMessage(content=message),
+                AIMessage(content=reply),
+            ]
+        })
+    except Exception as e:
+        logger.warning(f"[Chat] Could not persist conversational exchange: {e}")
+
+    yield sse_event("done", {"session_id": session_id})
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+
 class ChatRequest(BaseModel):
     message: str
     session_id: str | None = None
@@ -71,6 +172,18 @@ async def chat(
     }
 
     graph = await get_graph()
+
+    # ── Conversational bypass: skip full pipeline for follow-ups/clarifications
+    if _is_conversational(request.message):
+        return StreamingResponse(
+            _stream_conversational(graph, request.message, session_id, tenant.id, config),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+                "Connection": "keep-alive",
+            }
+        )
 
     initial_state = {
         "messages": [HumanMessage(content=request.message)],

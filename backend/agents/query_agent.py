@@ -61,6 +61,10 @@ Critical rules:
    If the question is vague, make a reasonable assumption and generate SQL for the most likely intent.
 10. For follow-up questions like "tell me more", "show details", or references to previous context,
     use the conversation history provided to determine what data to retrieve.
+11. Each schema section is labeled with a similarity score. A score below 0.65 means that schema
+    section is a weak match for this question. Do NOT use low-similarity tables as the primary basis
+    for your SQL — prefer higher-scoring tables. If all scores are below 0.65, set confidence < 0.5
+    and explain your uncertainty in the explanation field.
 
 The tenant_id placeholder is already filled in — use it exactly as shown.
 """
@@ -75,6 +79,21 @@ async def query_agent(state: RevAgentState) -> RevAgentState:
     # Step 1: Retrieve relevant schema from pgvector
     logger.info(f"[QueryAgent] Retrieving schema for: {user_question[:80]}...")
     relevant_schema = await search_schema(user_question, top_k=5)
+
+    # Guard: no schema met the similarity threshold — do not attempt SQL generation.
+    # Generating SQL without relevant schema context produces hallucinated queries.
+    if not relevant_schema:
+        logger.warning("[QueryAgent] No schema context met similarity threshold — refusing SQL generation")
+        return {
+            **state,
+            "current_step": current_step + 1,
+            "error": (
+                "INSUFFICIENT_SCHEMA_CONTEXT: The question doesn't map to any known "
+                "database tables with sufficient confidence. Please rephrase or ask "
+                "about metrics, subscriptions, revenue, churn, or customers."
+            ),
+        }
+
     schema_context = _format_schema_context(relevant_schema)
 
     # Step 2: Generate SQL with retry loop (up to 3 attempts)
