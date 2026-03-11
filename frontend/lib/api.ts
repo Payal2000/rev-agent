@@ -108,11 +108,12 @@ export async function submitApproval(
   approved: boolean,
   modifiedAction?: string,
   rejectionReason?: string,
-): Promise<void> {
+): Promise<{ message?: string }> {
   const res = await fetch(`${API_BASE}/api/approve/${sessionId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ approved, modified_action: modifiedAction, rejection_reason: rejectionReason }),
   });
   if (!res.ok) throw new Error(`Approval failed: ${res.status}`);
+  return res.json();
 }

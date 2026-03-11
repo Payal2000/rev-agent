@@ -7,7 +7,7 @@ import { ApprovalContext, Recommendation, submitApproval } from "@/lib/api";
 interface Props {
   sessionId: string;
   context: ApprovalContext;
-  onDecision: (approved: boolean) => void;
+  onDecision: (approved: boolean, message?: string) => void;
 }
 
 export default function ApprovalCard({ sessionId, context, onDecision }: Props) {
@@ -21,8 +21,8 @@ export default function ApprovalCard({ sessionId, context, onDecision }: Props) 
   const handleApprove = async () => {
     setLoading(true);
     try {
-      if (!isMock) await submitApproval(sessionId, true);
-      onDecision(true);
+      const result = isMock ? {} : await submitApproval(sessionId, true);
+      onDecision(true, result.message);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -31,8 +31,8 @@ export default function ApprovalCard({ sessionId, context, onDecision }: Props) 
     if (!showRejectInput) { setShowRejectInput(true); return; }
     setLoading(true);
     try {
-      if (!isMock) await submitApproval(sessionId, false, undefined, rejectionReason);
-      onDecision(false);
+      const result = isMock ? {} : await submitApproval(sessionId, false, undefined, rejectionReason);
+      onDecision(false, result.message);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -51,11 +51,11 @@ export default function ApprovalCard({ sessionId, context, onDecision }: Props) 
         <span style={{
           marginLeft: "auto",
           fontSize: 10.5,
-          color: "var(--accent-ink)",
-          background: "var(--accent-soft)",
+          color: "#0369a1",
+          background: "#e0f2fe",
           padding: "2px 8px",
           borderRadius: 999,
-          fontWeight: 600,
+          fontWeight: 400,
         }}>
           Awaiting approval
         </span>
@@ -81,14 +81,14 @@ export default function ApprovalCard({ sessionId, context, onDecision }: Props) 
                   width: 18,
                   height: 18,
                   borderRadius: "50%",
-                  background: "var(--accent-soft)",
-                  border: "1px solid var(--border-strong)",
+                  background: "#e0f2fe",
+                  border: "1px solid #bae6fd",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: 10,
                   fontWeight: 700,
-                  color: "var(--accent-ink)",
+                  color: "#0369a1",
                   flexShrink: 0,
                   marginTop: 1,
                 }}>
