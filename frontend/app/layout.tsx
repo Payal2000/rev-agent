@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 export const metadata: Metadata = {
   title: "RevAgent — Revenue Intelligence",
   description: "Multi-agent AI system for SaaS revenue analytics",
+  icons: { icon: "/rev-logo.png" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import {
   IconAlertTriangle,
   IconBell,
@@ -10,7 +11,6 @@ import {
   IconHelp,
   IconMessageChatbot,
   IconSettings,
-  IconTrendingUp,
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -80,9 +80,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader className="pb-0 pt-5">
         <div className="flex items-center justify-between px-3 pb-1">
           <a href="/dashboard" className="flex items-center gap-2.5 hover:no-underline">
-            <span className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-sm">
-              <IconTrendingUp className="size-4 text-white" />
-            </span>
+            <Image src="/rev-logo.png" alt="RevAgent" width={52} height={52} className="rounded-xl" style={{ width: 52, height: 52 }} />
             <span className="text-[15px] font-black tracking-widest uppercase text-foreground">RevAgent</span>
           </a>
           <SidebarTrigger className="text-muted-foreground hover:text-foreground hover:bg-black/5" />
