@@ -51,16 +51,16 @@ async def forecast_agent(state: RevAgentState) -> RevAgentState:
 
     forecast_result = ForecastResult(
         metric="mrr",
-        projection_30d=round(projection["30d"], 2),
-        projection_60d=round(projection["60d"], 2),
-        projection_90d=round(projection["90d"], 2),
+        projection_30d=float(round(float(projection["30d"]), 2)),
+        projection_60d=float(round(float(projection["60d"]), 2)),
+        projection_90d=float(round(float(projection["90d"]), 2)),
         confidence_interval_80={
-            "low": round(projection["ci_80_low"], 2),
-            "high": round(projection["ci_80_high"], 2),
+            "low": float(round(float(projection["ci_80_low"]), 2)),
+            "high": float(round(float(projection["ci_80_high"]), 2)),
         },
         confidence_interval_95={
-            "low": round(projection["ci_95_low"], 2),
-            "high": round(projection["ci_95_high"], 2),
+            "low": float(round(float(projection["ci_95_low"]), 2)),
+            "high": float(round(float(projection["ci_95_high"]), 2)),
         },
         trend=trend,
         narrative=narrative,

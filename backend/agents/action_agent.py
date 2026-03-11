@@ -56,7 +56,7 @@ async def action_agent(state: RevAgentState) -> RevAgentState:
     tenant_id = state["tenant_id"]
     current_step = state.get("current_step", 0)
 
-    anomalies = state.get("anomalies", [])
+    anomalies = state.get("anomalies") or []
     forecast = state.get("forecast")
 
     if not anomalies and not forecast:
@@ -90,6 +90,19 @@ async def action_agent(state: RevAgentState) -> RevAgentState:
         return {
             **state,
             "recommendations": [],
+            "current_step": current_step + 1,
+        }
+
+    # For background/system sessions (scheduled briefings, webhook-triggered
+    # insights), don't pause on human approval interrupts.
+    session_id = state.get("session_id", "")
+    if session_id.startswith("briefing-") or session_id.startswith("insights-"):
+        logger.info("[ActionAgent] Background session detected — skipping approval interrupt")
+        return {
+            **state,
+            "recommendations": recommendations,
+            "awaiting_approval": False,
+            "messages": state["messages"] + [AIMessage(content=_format_recommendations(recommendations))],
             "current_step": current_step + 1,
         }
 

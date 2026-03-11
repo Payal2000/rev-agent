@@ -1,7 +1,9 @@
 """Scheduled Celery tasks — daily briefing and threshold-triggered insights."""
 import asyncio
 import logging
+import sys
 import uuid
+from pathlib import Path
 
 from langchain_core.messages import HumanMessage
 
@@ -11,6 +13,12 @@ from tools.discord_tools import send_daily_briefing as discord_send_daily_briefi
 from tools.email_tools import send_daily_briefing_email
 
 logger = logging.getLogger(__name__)
+
+# Ensure /app is always importable inside celery worker subprocesses.
+# Some worker invocations can run without the backend root on sys.path.
+APP_ROOT = Path(__file__).resolve().parents[1]
+if str(APP_ROOT) not in sys.path:
+    sys.path.insert(0, str(APP_ROOT))
 
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=300, queue="scheduled")
@@ -27,6 +35,8 @@ def run_daily_briefing(self, company_id: str = "00000000-0000-0000-0000-00000000
 
 
 async def _async_daily_briefing(company_id: str):
+    if str(APP_ROOT) not in sys.path:
+        sys.path.insert(0, str(APP_ROOT))
     from graph.graph import get_graph
 
     graph = await get_graph()
@@ -112,6 +122,8 @@ def run_insights_pipeline(self, company_id: str, context: dict | None = None):
 
 
 async def _async_insights_run(company_id: str, context: dict):
+    if str(APP_ROOT) not in sys.path:
+        sys.path.insert(0, str(APP_ROOT))
     from graph.graph import get_graph
 
     graph = await get_graph()
