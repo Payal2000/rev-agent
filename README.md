@@ -15,6 +15,7 @@ Built with LangGraph · FastAPI · Next.js · PostgreSQL · pgvector · OpenAI G
 | Capability | How |
 |---|---|
 | **Natural language data queries** | Type "What's our MRR by pricing tier?" — converted to safe SQL via pgvector schema RAG, executed, and returned with structured results |
+| **Retrieval threshold tuning** | Schema retrieval cutoff tuned to reduce false `INSUFFICIENT_SCHEMA_CONTEXT` errors on core KPI/anomaly prompts |
 | **Inline chart generation** | Query results auto-detected as line, bar, or pie charts and rendered directly in the chat response |
 | **Proactive anomaly detection** | Z-score analysis on 90-day rolling metrics displayed on the Insights page with severity badges |
 | **Revenue forecasting** | Holt-Winters exponential smoothing with 30/60/90-day MRR projections and 80%/95% confidence bands |
@@ -85,7 +86,7 @@ User (Web / Slack / Discord)
 | **Frontend** | Next.js 16, React 19, Tailwind CSS 4, Recharts |
 | **Task queue** | Celery + Redis + APScheduler — background jobs, daily briefings |
 | **SQL safety** | sqlglot — parse-level validation, SELECT-only enforcement |
-| **Notifications** | Slack SDK, Discord webhooks, SendGrid |
+| **Notifications** | Slack SDK, Discord interactions + webhooks, SendGrid |
 | **Observability** | LangSmith — traces, evals, cost monitoring |
 | **Payments** | Stripe webhooks — subscription events, invoice sync |
 
@@ -143,9 +144,12 @@ rev-agent/
 │       └── mockResponses.ts # Demo mode fallbacks
 ├── docs/                    # Integration reference docs
 │   ├── README.md
-│   ├── slack-integration.md
-│   ├── discord-integration.md
-│   └── email-langgraph.md
+│   ├── Integrations/
+│   │   ├── slack-integration.md
+│   │   ├── discord-integration.md
+│   │   └── email-langgraph.md
+│   └── discord/
+│       └── discord_integrated.md
 ├── docker-compose.yml
 ├── .env.example
 └── README.md
@@ -247,6 +251,25 @@ Or press **⌘K** anywhere to open the command palette and pick a pre-built quer
 
 
 
+## Retrieval tuning
+
+RevAgent uses pgvector similarity search to map user questions to schema context before SQL generation.
+
+- Config file: `backend/tools/vector_tools.py`
+- Parameter: `SCHEMA_SIMILARITY_THRESHOLD`
+- Current value: `0.45`
+
+Tradeoff:
+- Threshold too high -> valid prompts can fail with `INSUFFICIENT_SCHEMA_CONTEXT`
+- Threshold too low -> weaker context may be passed to SQL generation
+
+The current setting was tuned against real query failures so core prompts like:
+- `What is our MRR this month?`
+- `Show churn anomalies in the last 30 days`
+
+resolve reliably while still filtering low-similarity matches. See [docs/discord/discord_integrated.md](docs/discord/discord_integrated.md) for the full tuning rationale and methodology.
+
+
 ## Notifications
 
 RevAgent pushes anomaly alerts and daily briefings to three channels simultaneously.
@@ -267,14 +290,22 @@ SLACK_CHANNEL_ID=C...
 
 ### Discord
 
-- **Outbound:** Anomaly alerts and briefings via Discord webhooks (no bot required)
-- **Inbound:** `/revagent` application command with deferred response pattern
+- **Outbound:** Anomaly alerts and briefings via Discord webhooks
+- **Inbound:** `/revagent` application command via interactions endpoint + deferred follow-up response
+- **Response UX improvements:** Summary-first output, currency formatting, date-desc sorting, top-row preview, CSV attachment for large result sets
 
-Setup: create a Discord Application, register `/revagent` command via API, set Interactions Endpoint URL to `/api/discord/interactions`.
+Setup:
+1. Create a Discord Application + Bot
+2. Set Interactions Endpoint URL to `https://<your-domain>/api/discord/interactions`
+3. Invite app with `bot` + `applications.commands`
+4. Register `/revagent` command via Discord API
 
 ```bash
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 DISCORD_PUBLIC_KEY=...
+DISCORD_BOT_TOKEN=...
+DISCORD_GUILD_ID=...
+DISCORD_APPLICATION_ID=...
 ```
 
 ### Email
@@ -368,6 +399,9 @@ SLACK_CHANNEL_ID=C...
 # Discord
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 DISCORD_PUBLIC_KEY=...
+DISCORD_BOT_TOKEN=...
+DISCORD_GUILD_ID=...
+DISCORD_APPLICATION_ID=...
 
 # Email
 SENDGRID_API_KEY=SG....
@@ -398,11 +432,12 @@ SECRET_KEY=change-this-in-production
 
 | Doc | Description |
 |---|---|
-| [docs/slack-integration.md](docs/slack-integration.md) | Full Slack setup, slash commands, approval flow |
-| [docs/discord-integration.md](docs/discord-integration.md) | Discord webhook + application command setup |
-| [docs/email-langgraph.md](docs/email-langgraph.md) | Email patterns in LangGraph, SendGrid setup |
-| [RevAgent_Complete_Blueprint.md](RevAgent_Complete_Blueprint.md) | Full technical blueprint and design decisions |
-| [BUGS_AND_ERRORS.md](BUGS_AND_ERRORS.md) | All bugs encountered during development with root cause analysis and solutions |
+| [docs/Integrations/slack-integration.md](docs/Integrations/slack-integration.md) | Full Slack setup, slash commands, approval flow |
+| [docs/Integrations/discord-integration.md](docs/Integrations/discord-integration.md) | Discord webhook + application command setup |
+| [docs/discord/discord_integrated.md](docs/discord/discord_integrated.md) | Implemented Discord setup, threshold tuning, and formatting improvements |
+| [docs/Integrations/email-langgraph.md](docs/Integrations/email-langgraph.md) | Email patterns in LangGraph, SendGrid setup |
+| [docs/Overview/RevAgent_Complete_Blueprint.md](docs/Overview/RevAgent_Complete_Blueprint.md) | Full technical blueprint and design decisions |
+| [docs/Bugs/BUGS_AND_ERRORS.md](docs/Bugs/BUGS_AND_ERRORS.md) | Bugs encountered during development with root cause analysis and solutions |
 
 
 ## Author
