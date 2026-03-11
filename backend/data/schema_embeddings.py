@@ -4,6 +4,7 @@ import json
 import logging
 
 from openai import AsyncOpenAI
+from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from config import settings
@@ -280,6 +281,7 @@ async def embed_and_store_schema():
                 set_={
                     "description": text_for_embedding,
                     "embedding": embedding,
+                    "updated_at": text("NOW()"),
                 }
             )
             await session.execute(stmt)
@@ -306,7 +308,17 @@ async def embed_and_store_playbook():
                 embedding=embedding,
                 estimated_impact=entry.get("estimated_impact", ""),
                 tags=entry.get("tags", []),
-            ).on_conflict_do_nothing()
+            ).on_conflict_do_update(
+                index_elements=["title"],
+                set_={
+                    "content": entry["content"],
+                    "embedding": embedding,
+                    "category": entry["category"],
+                    "estimated_impact": entry.get("estimated_impact", ""),
+                    "tags": entry.get("tags", []),
+                    "updated_at": text("NOW()"),
+                }
+            )
             await session.execute(stmt)
             logger.info(f"  ✓ Embedded playbook: {entry['title']}")
 

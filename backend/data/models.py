@@ -230,11 +230,12 @@ class SchemaEmbedding(Base):
     __tablename__ = "schema_embeddings"
 
     id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    table_name = Column(String(100), nullable=False)
+    table_name = Column(String(100), nullable=False, unique=True)
     description = Column(Text, nullable=False)  # full business-context doc
     embedding = Column(Vector(1536), nullable=False)
     extra = Column("metadata", JSONB, default={})
     created_at = Column(DateTime(timezone=True), server_default=text("NOW()"))
+    updated_at = Column(DateTime(timezone=True), server_default=text("NOW()"), onupdate=datetime.utcnow)
 
     __table_args__ = (
         Index("idx_schema_table", "table_name"),
@@ -266,9 +267,10 @@ class RagPlaybook(Base):
 
     id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
     category = Column(String(100), nullable=False)   # churn_reduction / expansion / pricing
-    title = Column(String(255), nullable=False)
+    title = Column(String(255), nullable=False, unique=True)
     content = Column(Text, nullable=False)
     embedding = Column(Vector(1536), nullable=False)
     estimated_impact = Column(String(100), nullable=True)  # e.g. "$50K ARR"
     tags = Column(JSONB, default=[])
     created_at = Column(DateTime(timezone=True), server_default=text("NOW()"))
+    updated_at = Column(DateTime(timezone=True), server_default=text("NOW()"), onupdate=datetime.utcnow)
