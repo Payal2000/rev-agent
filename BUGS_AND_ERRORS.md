@@ -206,6 +206,145 @@ The three fixes address each sub-cause independently. Instructing the LLM to nev
 
 ---
 
+## 8. Duplicate `.env` Block
+
+**File:** `.env`
+
+**Error:**
+No runtime error — silent misconfiguration risk. The `.env` file contained two full copies of `DATABASE_URL`, `STRIPE_*`, `LANGCHAIN_*`, and all other variables below the `OPENAI_API_KEY` entry.
+
+**Cause:**
+The file was accidentally duplicated during editing — the entire block from `DATABASE_URL` onward appeared twice (lines 5–39 and 43–78). Pydantic-settings takes the first occurrence, but any manual edit to the second block would silently have no effect.
+
+**Solution:**
+Removed the second duplicate block entirely, leaving one clean copy of every variable.
+
+**Why this solution:**
+Pydantic-settings reads the file top-to-bottom and uses the first value found. A duplicate block creates a false sense that editing it has effect, and makes `diff`s harder to read. Clean removal is the only correct fix.
+
+---
+
+## 9. Six Isolated Module-Level LLM Clients
+
+**Files:** `backend/agents/supervisor.py`, `query_agent.py`, `insights_agent.py`, `forecast_agent.py`, `action_agent.py`, `validator_agent.py`, `api/routes/chat.py`
+
+**Error:**
+No runtime error — structural reliability and maintainability issue. Each agent independently instantiated its own `ChatOpenAI(model=..., api_key=...)` at module load time. `chat.py` additionally created a brand new `AsyncOpenAI(api_key=...)` on every single synthesis call (once per user message).
+
+**Cause:**
+Copy-paste pattern across agents with no shared client layer. The `chat.py` synthesis function was written independently of the agent layer and never reused their clients.
+
+**Problems:**
+- 6+ separate client objects for the same API key — no connection reuse
+- Changing the model or key required edits in 7 files
+- A new `AsyncOpenAI` client per request meant no HTTP connection pooling
+- Module-level instantiation made it hard to detect key failures at runtime vs. import time
+
+**Solution:**
+Created `backend/llm.py` as the single source of truth:
+```python
+@lru_cache(maxsize=10)
+def get_llm(temperature: float = 0) -> ChatOpenAI:
+    return ChatOpenAI(model=settings.openai_model, api_key=settings.openai_api_key, temperature=temperature)
+
+@lru_cache(maxsize=1)
+def get_async_openai() -> AsyncOpenAI:
+    return AsyncOpenAI(api_key=settings.openai_api_key)
+```
+All 6 agents updated to `llm = get_llm(temperature=X)`. `chat.py` updated to `get_async_openai()`.
+
+**Why this solution:**
+`lru_cache` returns the same instance for the same temperature — so agents sharing a temperature (e.g., supervisor and query both at 0) reuse one object. The model and key are configured in one place. Connection pooling works correctly for the synthesis client.
+
+---
+
+## 10. `audit_trace_id` Always `None` — Broken Audit Trail
+
+**File:** `backend/api/routes/chat.py`
+
+**Error:**
+No runtime error — silent functional bug. Every row written to the `audit_log` table had `trace_id = NULL`, making it impossible to correlate audit records back to the user request that produced them. The `idx_audit_trace` index existed but was useless.
+
+**Cause:**
+`chat.py` initialized `"audit_trace_id": None` in `initial_state` on every request. The validator correctly read `state.get("audit_trace_id")` and passed it to `_log_audit()`, but the value was always `None`.
+
+**Solution:**
+One-line fix — generate a UUID per request:
+```python
+# Before
+"audit_trace_id": None,
+
+# After
+"audit_trace_id": str(uuid.uuid4()),
+```
+`uuid` was already imported in the file.
+
+**Why this solution:**
+Each chat request now gets a unique trace ID that flows through the entire LangGraph execution and lands in `audit_log.trace_id`. Enables queries like:
+```sql
+SELECT * FROM audit_log WHERE trace_id = 'abc-123' ORDER BY created_at;
+```
+
+---
+
+## 11. Session Message History Unbounded — Silent Token Cost Growth
+
+**File:** `backend/agents/supervisor.py`, `backend/graph/state.py`
+
+**Error:**
+No runtime error — silent cost and reliability degradation. `RevAgentState.messages` uses LangGraph's `add_messages` reducer, which appends every human and AI message indefinitely. The supervisor passed `*state["messages"]` — the entire history — to the LLM on every request. A session with 50 turns sent 100+ messages to `gpt-4o-mini` for every new intent classification.
+
+**Cause:**
+No trimming was applied anywhere in the supervisor's LLM call. The query agent already self-limited to `[-6:]` for its history block, but the supervisor had no such guard.
+
+**Solution:**
+Added `trim_messages()` utility to `graph/state.py`:
+```python
+def trim_messages(messages: list, max_turns: int = 8) -> list:
+    if len(messages) <= max_turns * 2:
+        return messages
+    return messages[-(max_turns * 2):]
+```
+Applied in `supervisor.py`:
+```python
+# Before
+*state["messages"],
+
+# After
+*trim_messages(state["messages"]),
+```
+
+**Why this solution:**
+8 turns (16 messages) gives the supervisor enough conversational context for intent classification while capping token usage. The full history is still stored in the PostgreSQL checkpoint — trimming only affects what gets sent to the LLM, not what's persisted.
+
+---
+
+## 12. Chart Detection Silent — No Visibility Into Failures
+
+**File:** `backend/api/routes/chat.py`
+
+**Error:**
+No runtime error — operational blind spot. `_detect_chart()` returned `None` silently in every failure case (too few rows, no numeric columns, no x-axis). In production, there was no way to know whether charts were being produced, skipped, or misclassified.
+
+**Cause:**
+The function was written with no logging — all early-return paths and the three success paths (`line`, `bar`, `pie`) produced zero output.
+
+**Solution:**
+Added structured `logger.info` on chart production and `logger.debug` on skip paths:
+```python
+# On success
+logger.info(f"[Chart] line · x={time_col} y={numeric_cols[:3]} rows={len(rows)}")
+
+# On skip
+logger.debug(f"[Chart] Skipped — only {len(raw_rows)} row(s), need ≥2")
+logger.debug(f"[Chart] Skipped — no numeric columns in {columns}")
+```
+
+**Why this solution:**
+`INFO` for chart production (worth knowing in normal ops), `DEBUG` for skips (too noisy at INFO level). Enables `docker compose logs -f backend | grep '\[Chart\]'` as a live telemetry stream without any new infrastructure.
+
+---
+
 ## Summary Table
 
 | # | File | Type | Root Cause | Fix |
@@ -217,3 +356,8 @@ The three fixes address each sub-cause independently. Instructing the LLM to nev
 | 5 | `routes/chat.py` | Runtime crash | `datetime` objects not JSON serializable | `_serialize_rows()` converts datetime to ISO string |
 | 6 | `routes/chat.py` | Runtime crash | `UUID` objects not JSON serializable | Catch-all `json.dumps()` test + `str()` fallback |
 | 7 | `query_agent.py` + `chat.py` | Quality bug | LLM asking for clarification; AIMessage bypass; no conversation history | Disable disambiguation, fix AIMessage detection, pass history |
+| 8 | `.env` | Misconfiguration | Entire variable block duplicated | Removed duplicate block |
+| 9 | All agents + `chat.py` | Structural bug | 6 isolated LLM clients + per-request `AsyncOpenAI` | `backend/llm.py` shared factory with `lru_cache` |
+| 10 | `routes/chat.py` | Silent bug | `audit_trace_id` initialized to `None` on every request | `str(uuid.uuid4())` per request |
+| 11 | `supervisor.py` + `state.py` | Silent degradation | No message trimming — full history sent to LLM every turn | `trim_messages()` capping at 8 turns |
+| 12 | `routes/chat.py` | Operational gap | `_detect_chart()` returned `None` silently with no logs | Structured `logger.info/debug` on all code paths |
