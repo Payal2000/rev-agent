@@ -51,18 +51,32 @@ async def approve_recommendation(
     try:
         from langgraph.types import Command
 
-        # Resume the graph from the interrupt point
+        # Resume the graph from the interrupt point and drain the stream
         async for _ in graph.astream(
             Command(resume=resume_value),
             config=config,
             stream_mode="updates",
         ):
-            pass  # drain the stream
+            pass
+
+        # Extract the final AI message from the completed graph state
+        final_message: Optional[str] = None
+        try:
+            snapshot = await graph.aget_state(config)
+            if snapshot and snapshot.values:
+                for msg in reversed(snapshot.values.get("messages", [])):
+                    cls = getattr(msg, "__class__", type(msg)).__name__
+                    if "AIMessage" in cls and getattr(msg, "content", ""):
+                        final_message = msg.content
+                        break
+        except Exception as state_err:
+            logger.warning(f"[Approval] Could not read final state: {state_err}")
 
         return {
             "status": "resumed",
             "session_id": session_id,
             "approved": decision.approved,
+            "message": final_message,
         }
 
     except Exception as e:

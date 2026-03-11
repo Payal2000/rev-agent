@@ -7,7 +7,6 @@ from typing import AsyncGenerator
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from langchain_core.messages import HumanMessage, AIMessage
-from openai import AsyncOpenAI
 from pydantic import BaseModel
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
@@ -16,6 +15,7 @@ from config import settings
 from data.database import AsyncSessionLocal
 from data.models import ChatSession
 from graph.graph import get_graph
+from llm import get_async_openai
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -88,7 +88,7 @@ async def chat(
         "validation_notes": None,
         "awaiting_approval": False,
         "approval_context": None,
-        "audit_trace_id": None,
+        "audit_trace_id": str(uuid.uuid4()),
         "error": None,
         "retry_count": 0,
     }
@@ -148,20 +148,27 @@ async def _stream_agent(
                     "label": step_labels.get(node_name, node_name)
                 })
 
-            # Human-in-the-loop approval required
-            elif event_name == "on_chain_end" and node_name == "action":
-                output = event_data.get("output", {})
-                if isinstance(output, dict) and output.get("awaiting_approval"):
-                    yield sse_event("approval_required", {
-                        "session_id": session_id,
-                        "context": output.get("approval_context", {}),
-                    })
-
     except Exception as e:
         logger.error(f"[Chat] Stream error: {e}", exc_info=True)
         yield sse_event("error", {"message": str(e)})
         yield sse_event("done", {"session_id": session_id})
         return
+
+    # Check if the graph paused at a human-in-the-loop interrupt
+    try:
+        snapshot = await graph.aget_state(config)
+        if snapshot and snapshot.next and snapshot.tasks:
+            for task in snapshot.tasks:
+                if task.interrupts:
+                    interrupt_value = task.interrupts[0].value
+                    yield sse_event("approval_required", {
+                        "session_id": session_id,
+                        "context": interrupt_value,
+                    })
+                    yield sse_event("done", {"session_id": session_id})
+                    return
+    except Exception as e:
+        logger.warning(f"[Chat] Failed to check interrupt state: {e}")
 
     # After graph completes, synthesize final response from state
     try:
@@ -276,7 +283,7 @@ Write a concise, business-friendly response in markdown. Guidelines:
 - Use conversation context to make the response more relevant and specific"""
 
     try:
-        oai = AsyncOpenAI(api_key=settings.openai_api_key)
+        oai = get_async_openai()
         resp = await oai.chat.completions.create(
             model=settings.openai_model,
             messages=[{"role": "user", "content": prompt}],
@@ -325,6 +332,7 @@ def _detect_chart(query_results: dict) -> dict | None:
     """
     raw_rows = query_results.get("rows") or []
     if len(raw_rows) < 2:
+        logger.debug(f"[Chart] Skipped — only {len(raw_rows)} row(s), need ≥2")
         return None
 
     rows = _serialize_rows(raw_rows)
@@ -338,6 +346,7 @@ def _detect_chart(query_results: dict) -> dict | None:
     cat_cols = [c for c in columns if c not in numeric_cols]
 
     if not numeric_cols:
+        logger.debug(f"[Chart] Skipped — no numeric columns in {columns}")
         return None
 
     # Time series detection — line chart
@@ -347,6 +356,7 @@ def _detect_chart(query_results: dict) -> dict | None:
         None
     )
     if time_col:
+        logger.info(f"[Chart] line · x={time_col} y={numeric_cols[:3]} rows={len(rows)}")
         return {
             "chartType": "line",
             "data": rows,
@@ -358,12 +368,14 @@ def _detect_chart(query_results: dict) -> dict | None:
     if cat_cols:
         x_key = cat_cols[0]
         if len(rows) <= 6 and len(numeric_cols) == 1:
+            logger.info(f"[Chart] pie · x={x_key} y={numeric_cols[0]} rows={len(rows)}")
             return {
                 "chartType": "pie",
                 "data": rows,
                 "xKey": x_key,
                 "yKeys": numeric_cols,
             }
+        logger.info(f"[Chart] bar · x={x_key} y={numeric_cols[:3]} rows={len(rows)}")
         return {
             "chartType": "bar",
             "data": rows,
@@ -371,4 +383,5 @@ def _detect_chart(query_results: dict) -> dict | None:
             "yKeys": numeric_cols[:3],
         }
 
+    logger.debug(f"[Chart] Skipped — no categorical x-axis found in {columns}")
     return None
