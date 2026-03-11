@@ -3,21 +3,16 @@ import logging
 from typing import Optional
 
 import numpy as np
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import AIMessage
 from sqlalchemy import text
 
-from config import settings
 from data.database import get_session
 from graph.state import RevAgentState, Anomaly
+from llm import get_llm
 
 logger = logging.getLogger(__name__)
 
-llm = ChatOpenAI(
-    model=settings.openai_model,
-    api_key=settings.openai_api_key,
-    temperature=0.2,
-)
+llm = get_llm(temperature=0.2)
 
 ANOMALY_THRESHOLD = 2.0   # z-score threshold for flagging
 LOOKBACK_DAYS = 90

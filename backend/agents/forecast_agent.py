@@ -5,21 +5,16 @@ from typing import Optional
 import numpy as np
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from scipy import stats
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import AIMessage
 from sqlalchemy import text
 
-from config import settings
 from data.database import get_session
 from graph.state import RevAgentState, ForecastResult
+from llm import get_llm
 
 logger = logging.getLogger(__name__)
 
-llm = ChatOpenAI(
-    model=settings.openai_model,
-    api_key=settings.openai_api_key,
-    temperature=0.3,
-)
+llm = get_llm(temperature=0.3)
 
 
 async def forecast_agent(state: RevAgentState) -> RevAgentState:

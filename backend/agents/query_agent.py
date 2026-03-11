@@ -2,20 +2,14 @@
 import logging
 from typing import Optional
 
-from langchain_openai import ChatOpenAI
-
-from config import settings
 from graph.state import RevAgentState
+from llm import get_llm
 from tools.sql_tools import execute_safe_sql, format_results_for_llm, SQLSafetyError
 from tools.vector_tools import search_schema
 
 logger = logging.getLogger(__name__)
 
-llm = ChatOpenAI(
-    model=settings.openai_model,
-    api_key=settings.openai_api_key,
-    temperature=0,
-)
+llm = get_llm(temperature=0)
 
 SQL_GENERATION_TOOL = {
     "type": "function",

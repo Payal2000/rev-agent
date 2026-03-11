@@ -2,21 +2,16 @@
 import logging
 from typing import Optional
 
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import AIMessage
 from langgraph.types import interrupt
 
-from config import settings
 from graph.state import RevAgentState, Recommendation
+from llm import get_llm
 from tools.vector_tools import search_playbook, search_agent_memory
 
 logger = logging.getLogger(__name__)
 
-llm = ChatOpenAI(
-    model=settings.openai_model,
-    api_key=settings.openai_api_key,
-    temperature=0.3,
-)
+llm = get_llm(temperature=0.3)
 
 RANKING_TOOL = {
     "type": "function",

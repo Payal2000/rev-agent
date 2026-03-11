@@ -3,19 +3,14 @@ import json
 import logging
 from typing import Any
 
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import AIMessage, SystemMessage
 
-from config import settings
-from graph.state import RevAgentState
+from graph.state import RevAgentState, trim_messages
+from llm import get_llm
 
 logger = logging.getLogger(__name__)
 
-llm = ChatOpenAI(
-    model=settings.openai_model,
-    api_key=settings.openai_api_key,
-    temperature=0,
-)
+llm = get_llm(temperature=0)
 
 # ── Intent classification function schema ─────────────────────────────────────
 
@@ -85,7 +80,7 @@ async def supervisor_agent(state: RevAgentState) -> RevAgentState:
     response = await llm.ainvoke(
         [
             SystemMessage(content=SUPERVISOR_SYSTEM_PROMPT),
-            *state["messages"],
+            *trim_messages(state["messages"]),
         ],
         tools=[CLASSIFY_INTENT_TOOL],
         tool_choice={"type": "function", "function": {"name": "classify_intent"}},

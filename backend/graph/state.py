@@ -4,6 +4,20 @@ from langgraph.graph.message import add_messages
 from typing_extensions import TypedDict
 
 
+def trim_messages(messages: list, max_turns: int = 8) -> list:
+    """
+    Return the last `max_turns` human/AI pairs from the message list,
+    always keeping the most recent HumanMessage as the current query.
+
+    - max_turns=8 → keeps up to 16 messages (8 human + 8 AI)
+    - Trims older history to stay within token budget
+    """
+    if len(messages) <= max_turns * 2:
+        return messages
+    # Always keep the last (max_turns * 2) messages
+    return messages[-(max_turns * 2):]
+
+
 class Anomaly(TypedDict):
     metric_name: str
     current_value: float
