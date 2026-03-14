@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import { ChatMessage, SSEEvent, streamChat } from "@/lib/api";
-import { streamMockResponse } from "@/lib/mockResponses";
 import ChatMessageComponent from "@/components/chat/ChatMessage";
 import {
   Send,
@@ -80,7 +79,7 @@ function ChatInner() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const autoSentRef = useRef(false);
+  const lastAutoParamsRef = useRef<string>("");
 
   // Persist session_id to localStorage whenever it changes
   useEffect(() => {
@@ -126,21 +125,10 @@ function ChatInner() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backendLive]);
 
-  // Auto-send ?q= query param on first load
-  useEffect(() => {
-    const q = searchParams.get("q");
-    if (q && !autoSentRef.current && backendLive !== null) {
-      autoSentRef.current = true;
-      sendMessage(q);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [backendLive, searchParams]);
-
   const startNewChat = () => {
     const newId = uuidv4();
     setSessionId(newId);
     setMessages([]);
-    autoSentRef.current = false;
   };
 
   const switchSession = async (sid: string) => {
@@ -172,7 +160,7 @@ function ChatInner() {
     if (sid === sessionId) startNewChat();
   };
 
-  const sendMessage = (text: string) => {
+  const sendMessage = useCallback((text: string, targetSessionId?: string) => {
     if (!text.trim() || isLoading) return;
 
     const userMsg: ChatMessage = { id: uuidv4(), role: "user", content: text.trim(), timestamp: new Date() };
@@ -202,9 +190,40 @@ function ChatInner() {
       loadSessions(); // refresh sidebar after message completes
     };
 
-    if (backendLive) streamChat(text.trim(), sessionId, handleEvent, handleDone);
-    else streamMockResponse(text.trim(), handleEvent, handleDone);
-  };
+    const effectiveSessionId = targetSessionId || sessionId;
+    if (backendLive) {
+      streamChat(text.trim(), effectiveSessionId, handleEvent, handleDone);
+    } else {
+      handleEvent({
+        type: "error",
+        message: "Backend is unreachable. Live mode requires backend connectivity.",
+      });
+      handleDone();
+    }
+  }, [backendLive, isLoading, loadSessions, sessionId]);
+
+  // Auto-send ?q= and honor ?new=1 on each unique URL param change
+  useEffect(() => {
+    if (backendLive === null) return;
+    const q = (searchParams.get("q") || "").trim();
+    if (!q) return;
+
+    const paramsKey = searchParams.toString();
+    if (lastAutoParamsRef.current === paramsKey) return;
+    lastAutoParamsRef.current = paramsKey;
+
+    const forceNew = searchParams.get("new") === "1";
+    if (forceNew) {
+      const newId = uuidv4();
+      setSessionId(newId);
+      setMessages([]);
+      localStorage.setItem(SESSION_KEY, newId);
+      sendMessage(q, newId);
+      return;
+    }
+
+    sendMessage(q);
+  }, [backendLive, searchParams, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); }

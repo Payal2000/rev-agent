@@ -1,30 +1,42 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
 import { AT_RISK_ACCOUNTS, FORECAST_DATA } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/utils";
 import { KPI_COLORS } from "@/lib/kpi-colors";
-import Link from "next/link";
-import { ArrowRight, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardAction, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useLiveData } from "@/lib/hooks";
 import type { ForecastPoint } from "@/components/charts/ForecastChart";
+import { DataTable } from "@/components/data-table";
 
 const ForecastChart = dynamic(() => import("@/components/charts/ForecastChart"), { ssr: false });
-
-const RISK_COLOR = (score: number) =>
-  score >= 90 ? "var(--danger)" : score >= 75 ? "var(--warning)" : score >= 60 ? "var(--accent)" : "var(--success)";
 
 const CARD = "bg-white/65 backdrop-blur-sm dark:bg-white/6 border-[3px] border-white dark:border-white/10 shadow-sm rounded-2xl";
 
 type ForecastApiResponse = { data: ForecastPoint[]; stats: { p30: number; p60: number; p90: number; ci80: { low: number; high: number }; currentMrr: number; trend: string } | null };
+type AtRiskAccount = {
+  id: string | number;
+  name: string;
+  tier: string;
+  mrr: number;
+  riskScore: number;
+  daysToChurn: number;
+  signals: string[] | string;
+};
 
 export default function ForecastsPage() {
-  const { data: forecast } = useLiveData<ForecastApiResponse>("/api/forecast/mrr", { data: FORECAST_DATA, stats: null });
-  const { data: atRisk } = useLiveData("/api/metrics/at-risk-accounts", AT_RISK_ACCOUNTS);
-  const [tableExpanded, setTableExpanded] = useState(true);
+  const { data: forecast, error: forecastError, source: forecastSource } = useLiveData<ForecastApiResponse>(
+    "/api/forecast/mrr",
+    { data: FORECAST_DATA, stats: null },
+    { pollMs: 30000, allowFallback: false },
+  );
+  const { data: atRisk } = useLiveData<AtRiskAccount[]>(
+    "/api/metrics/at-risk-accounts",
+    AT_RISK_ACCOUNTS,
+    { pollMs: 30000, allowFallback: false },
+  );
 
   const stats = forecast.stats;
   const currentMrr = stats?.currentMrr ?? 423800;
@@ -43,6 +55,13 @@ export default function ForecastsPage() {
 
   return (
     <div className="flex flex-col gap-4 px-4 py-4 lg:px-6 lg:py-6 w-full">
+      {(forecastError || forecastSource !== "live") && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs text-amber-900">
+          {forecastError
+            ? `Live backend fetch failed: ${forecastError}`
+            : "Using fallback data. Backend is not fully reachable."}
+        </div>
+      )}
       {/* Header */}
       <div className={`${CARD} px-6 py-5`}>
         <h1 className="page-title">Forecasts</h1>
@@ -101,127 +120,8 @@ export default function ForecastsPage() {
         <ForecastChart chartData={forecast.data} />
       </div>
 
-      {/* At-risk accounts */}
-      <div className={`${CARD} animate-fade-up delay-250`} style={{ overflow: "hidden" }}>
-        {/* Collapsible header */}
-        <button
-          onClick={() => setTableExpanded(v => !v)}
-          style={{
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "20px 24px",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            borderBottom: tableExpanded ? "1px solid var(--border-subtle)" : "none",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ textAlign: "left" }}>
-              <h2 className="section-title" style={{ margin: 0 }}>At-Risk Accounts</h2>
-              <p className="section-subtitle" style={{ margin: 0 }}>ML churn prediction model · {atRisk.length} accounts flagged</p>
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Link
-              href="/chat"
-              className="inline-link"
-              style={{ flexShrink: 0 }}
-              onClick={e => e.stopPropagation()}
-            >
-              Get recommendations <ArrowRight size={10} />
-            </Link>
-            <span style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 26,
-              height: 26,
-              borderRadius: "50%",
-              background: "var(--bg-elevated)",
-              border: "1px solid var(--border)",
-              color: "var(--text-muted)",
-              flexShrink: 0,
-            }}>
-              {tableExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-            </span>
-          </div>
-        </button>
-
-        {tableExpanded && (
-        <div style={{ padding: "0 24px 24px" }}>
-        <div className="table-scroll" style={{ marginTop: 16 }}>
-          <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: 560 }}>
-            <thead>
-              <tr>
-                {["Account", "Tier", "MRR", "Risk", "Days to Churn", "Signals"].map((h, hi, arr) => (
-                  <th key={h} style={{ fontSize: 14, fontWeight: 500, color: "#111111", textAlign: "left", padding: "13px 20px", background: "#ffffff", borderBottom: "none", borderRadius: hi === 0 ? "999px 0 0 999px" : hi === arr.length - 1 ? "0 999px 999px 0" : undefined }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {atRisk.map((acc, i) => (
-                <tr key={acc.id}>
-                  <td style={{ padding: "17px 20px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)", borderBottom: i < atRisk.length - 1 ? "1px solid #ebebeb" : "none" }}>
-                    {acc.name}
-                  </td>
-                  <td style={{ padding: "17px 20px", borderBottom: i < atRisk.length - 1 ? "1px solid #ebebeb" : "none" }}>
-                    <span style={{ fontSize: 10, fontWeight: 400, padding: "1px 7px", borderRadius: 999, background: acc.tier === "Enterprise" ? KPI_COLORS.sky.bg : acc.tier === "Growth" ? KPI_COLORS.amber.bg : KPI_COLORS.green.bg, color: acc.tier === "Enterprise" ? KPI_COLORS.sky.text : acc.tier === "Growth" ? KPI_COLORS.amber.text : KPI_COLORS.green.text, border: `1px solid ${acc.tier === "Enterprise" ? KPI_COLORS.sky.text : acc.tier === "Growth" ? KPI_COLORS.amber.text : KPI_COLORS.green.text}33`, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
-                      {acc.tier}
-                    </span>
-                  </td>
-                  <td style={{ padding: "17px 20px", fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-primary)", fontWeight: 600, borderBottom: i < atRisk.length - 1 ? "1px solid #ebebeb" : "none" }}>
-                    {formatCurrency(acc.mrr)}
-                  </td>
-                  <td style={{ padding: "17px 20px", borderBottom: i < atRisk.length - 1 ? "1px solid #ebebeb" : "none" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                      <div style={{ width: 54, height: 4, borderRadius: 2, background: "var(--bg-elevated)", overflow: "hidden" }}>
-                        <div style={{ width: `${acc.riskScore}%`, height: "100%", background: RISK_COLOR(acc.riskScore), borderRadius: 2 }} />
-                      </div>
-                      <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", color: RISK_COLOR(acc.riskScore), fontWeight: 700 }}>
-                        {acc.riskScore}
-                      </span>
-                    </div>
-                  </td>
-                  <td style={{ padding: "17px 20px", fontSize: 13, color: acc.daysToChurn < 20 ? "var(--danger)" : "var(--text-secondary)", fontFamily: "var(--font-mono)", borderBottom: i < atRisk.length - 1 ? "1px solid #ebebeb" : "none" }}>
-                    {acc.daysToChurn}d
-                  </td>
-                  <td style={{ padding: "17px 20px", borderBottom: i < atRisk.length - 1 ? "1px solid #ebebeb" : "none" }}>
-                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                      {acc.signals.map(s => (
-                        <span key={s} style={{ fontSize: 11, padding: "2px 7px", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text-muted)" }}>
-                          {s}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border-subtle)", display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-          <span style={{ color: "var(--text-muted)" }}>
-            Total MRR at risk:&nbsp;
-            <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--danger)" }}>
-              {formatCurrency(atRisk.reduce((s, a) => s + a.mrr, 0))}
-            </span>
-          </span>
-          <span style={{ color: "var(--text-muted)" }}>
-            ARR at risk:&nbsp;
-            <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--warning)" }}>
-              {formatCurrency(atRisk.reduce((s, a) => s + a.mrr, 0) * 12, true)}
-            </span>
-          </span>
-        </div>
-        </div>
-        )}
-      </div>
+      {/* At-risk accounts: use the same table component as Dashboard */}
+      <DataTable data={atRisk} />
     </div>
   );
 }
