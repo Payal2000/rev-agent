@@ -27,6 +27,8 @@ export default function AnomalyCard({
 }: Props) {
   const s = SEV_CFG[severity];
   const { Icon } = s;
+  const chatQuery = `Investigate anomaly: ${title}. Metric: ${metricLabel}. ${explanation}`;
+  const chatHref = `/chat?new=1&q=${encodeURIComponent(chatQuery)}`;
 
   return (
     <div style={{ padding: "14px 16px", borderRadius: 14, background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
@@ -78,7 +80,14 @@ export default function AnomalyCard({
             {formatCurrency(Math.abs(affectedMrr))} MRR
           </span>
         )}
-        <Link href="/chat" style={{ fontSize: 12.5, fontWeight: 400, color: "var(--text-primary)", textDecoration: "none", marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4 }}>
+        <Link
+          href={chatHref}
+          onClick={(e) => {
+            e.preventDefault();
+            window.location.assign(`${chatHref}&run=${Date.now()}`);
+          }}
+          style={{ fontSize: 12.5, fontWeight: 400, color: "var(--text-primary)", textDecoration: "none", marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4 }}
+        >
           Investigate in Chat <ArrowRight size={11} />
         </Link>
       </div>

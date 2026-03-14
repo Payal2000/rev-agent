@@ -12,6 +12,7 @@ import {
   OPERATIONAL_ALERTS,
 } from "@/lib/mock-data";
 import { useLiveData } from "@/lib/hooks";
+import { WidgetHealthPanel } from "@/components/WidgetHealthPanel";
 import AnomalyCard from "@/components/ui/AnomalyCard";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Sparkles, TrendingUp, TrendingDown, Minus, ArrowUpRight, Activity, AlertTriangle, AlertCircle, Lightbulb, Info, Building2, Users, Zap, ChevronDown, ChevronUp } from "lucide-react";
@@ -28,8 +29,8 @@ const CARD = "bg-white/65 backdrop-blur-sm dark:bg-white/6 border-[3px] border-w
 
 // Segment colors — fill is pastel bg, text matches from KPI_COLORS
 const SEGMENT_PASTEL = {
-  Enterprise: { fill: KPI_COLORS.sky.bg,   text: KPI_COLORS.sky.text   },
-  Growth:     { fill: KPI_COLORS.amber.bg, text: KPI_COLORS.amber.text },
+  Enterprise: { fill: KPI_COLORS.blue.bg,   text: KPI_COLORS.blue.text   },
+  Growth:     { fill: KPI_COLORS.yellow.bg, text: KPI_COLORS.yellow.text },
   Starter:    { fill: KPI_COLORS.green.bg, text: KPI_COLORS.green.text },
 } as const;
 
@@ -115,14 +116,29 @@ export default function InsightsPage() {
   const [filter, setFilter] = useState<Severity>("all");
   const [cohortExpanded, setCohortExpanded] = useState(true);
   const [growthExpanded, setGrowthExpanded] = useState(true);
-  const { data: anomalies } = useLiveData("/api/insights/anomalies", ANOMALIES);
-  const { data: signals } = useLiveData("/api/insights/signals", REVENUE_SIGNALS);
-  const { data: churnSignals } = useLiveData("/api/insights/churn-signals", CHURN_SIGNALS);
-  const { data: cohortRetention } = useLiveData("/api/insights/cohort-retention", COHORT_RETENTION);
-  const { data: growthOpportunities } = useLiveData("/api/insights/growth-opportunities", GROWTH_OPPORTUNITIES);
-  const { data: segmentHealth } = useLiveData("/api/insights/segment-health", SEGMENT_HEALTH);
-  const { data: operationalAlerts } = useLiveData("/api/insights/operational-alerts", OPERATIONAL_ALERTS);
-  const { data: digest, loading: digestLoading } = useLiveData("/api/insights/weekly-digest", WEEKLY_DIGEST);
+  const { data: anomalies, error: anomaliesError, source: anomaliesSource } = useLiveData(
+    "/api/insights/anomalies",
+    ANOMALIES,
+    { pollMs: 30000, allowFallback: false },
+  );
+  const { data: signals, error: signalsError } = useLiveData("/api/insights/signals", REVENUE_SIGNALS, { pollMs: 30000, allowFallback: false });
+  const { data: churnSignals, error: churnSignalsError } = useLiveData("/api/insights/churn-signals", CHURN_SIGNALS, { pollMs: 30000, allowFallback: false });
+  const { data: cohortRetention, error: cohortError } = useLiveData("/api/insights/cohort-retention", COHORT_RETENTION, { pollMs: 30000, allowFallback: false });
+  const { data: growthOpportunities, error: growthError } = useLiveData("/api/insights/growth-opportunities", GROWTH_OPPORTUNITIES, { pollMs: 30000, allowFallback: false });
+  const { data: segmentHealth, error: segmentError } = useLiveData("/api/insights/segment-health", SEGMENT_HEALTH, { pollMs: 30000, allowFallback: false });
+  const { data: operationalAlerts, error: opsError } = useLiveData("/api/insights/operational-alerts", OPERATIONAL_ALERTS, { pollMs: 30000, allowFallback: false });
+  const { data: digest, loading: digestLoading, error: digestError } = useLiveData("/api/insights/weekly-digest", WEEKLY_DIGEST, { pollMs: 30000, allowFallback: false, timeoutMs: 20000 });
+
+  const insightErrors = [
+    anomaliesError,
+    signalsError,
+    churnSignalsError,
+    cohortError,
+    growthError,
+    segmentError,
+    opsError,
+    digestError,
+  ].filter(Boolean) as string[];
 
   const filtered = filter === "all" ? anomalies : anomalies.filter((a: typeof ANOMALIES[0]) => a.severity === filter);
   const counts = {
@@ -143,6 +159,15 @@ export default function InsightsPage() {
 
   return (
     <div className="flex flex-col gap-4 px-4 py-4 lg:px-6 lg:py-6 w-full">
+      {(insightErrors.length > 0 || anomaliesSource !== "live") && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs text-amber-900">
+          {insightErrors.length > 0
+            ? `Live backend fetch failed: ${insightErrors[0]}`
+            : "Using fallback data. Backend is not fully reachable."}
+        </div>
+      )}
+
+      <WidgetHealthPanel />
 
       {/* Header + Revenue Signals */}
       <div className={`${CARD} px-6 py-5`}>
@@ -357,7 +382,7 @@ export default function InsightsPage() {
                 <tr key={acc.id}>
                   <td style={{ padding: "17px 20px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)", borderBottom: i < growthOpportunities.length - 1 ? "1px solid var(--border)" : "none" }}>{acc.name}</td>
                   <td style={{ padding: "17px 20px", borderBottom: i < growthOpportunities.length - 1 ? "1px solid var(--border)" : "none" }}>
-                    <span style={{ fontSize: 10, fontWeight: 400, padding: "1px 7px", borderRadius: 999, background: acc.tier === "Enterprise" ? KPI_COLORS.sky.bg : acc.tier === "Growth" ? KPI_COLORS.amber.bg : KPI_COLORS.green.bg, color: acc.tier === "Enterprise" ? KPI_COLORS.sky.text : acc.tier === "Growth" ? KPI_COLORS.amber.text : KPI_COLORS.green.text, border: `1px solid ${acc.tier === "Enterprise" ? KPI_COLORS.sky.text : acc.tier === "Growth" ? KPI_COLORS.amber.text : KPI_COLORS.green.text}33`, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
+                    <span style={{ fontSize: 10, fontWeight: 400, padding: "1px 7px", borderRadius: 999, background: acc.tier === "Enterprise" ? KPI_COLORS.blue.bg : acc.tier === "Growth" ? KPI_COLORS.yellow.bg : KPI_COLORS.green.bg, color: acc.tier === "Enterprise" ? KPI_COLORS.blue.text : acc.tier === "Growth" ? KPI_COLORS.yellow.text : KPI_COLORS.green.text, border: `1px solid ${acc.tier === "Enterprise" ? KPI_COLORS.blue.text : acc.tier === "Growth" ? KPI_COLORS.yellow.text : KPI_COLORS.green.text}33`, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
                       {acc.tier}
                     </span>
                   </td>
@@ -428,7 +453,7 @@ export default function InsightsPage() {
                     <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", fontWeight: 400, background: seg.churnRate > 3 ? KPI_COLORS.red.bg : KPI_COLORS.green.bg, color: seg.churnRate > 3 ? KPI_COLORS.red.text : KPI_COLORS.green.text, padding: "2px 8px", borderRadius: 999, border: `1px solid ${seg.churnRate > 3 ? KPI_COLORS.red.text : KPI_COLORS.green.text}33` }}>
                       {seg.churnRate}% churn
                     </span>
-                    <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", fontWeight: 400, background: KPI_COLORS.teal.bg, color: KPI_COLORS.teal.text, padding: "2px 8px", borderRadius: 999, border: `1px solid ${KPI_COLORS.teal.text}33` }}>
+                    <span style={{ fontSize: 10, fontFamily: "var(--font-mono)", fontWeight: 400, background: KPI_COLORS.blue.bg, color: KPI_COLORS.blue.text, padding: "2px 8px", borderRadius: 999, border: `1px solid ${KPI_COLORS.blue.text}33` }}>
                       {seg.nrr}% NRR
                     </span>
                   </div>
@@ -444,7 +469,7 @@ export default function InsightsPage() {
           <p className="section-subtitle" style={{ marginBottom: 14 }}>Payments · Billing · Conversions</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {operationalAlerts.map((a: typeof OPERATIONAL_ALERTS[0]) => {
-              const kc = a.status === "critical" ? KPI_COLORS.red : a.status === "warning" ? KPI_COLORS.orange : KPI_COLORS.sky;
+              const kc = a.status === "critical" ? KPI_COLORS.red : a.status === "warning" ? KPI_COLORS.orange : KPI_COLORS.blue;
               const AlertIcon = a.status === "critical" ? AlertTriangle : a.status === "warning" ? AlertCircle : Info;
               const alertHref = `/chat?new=1&q=${encodeURIComponent(`Investigate operational alert: ${a.label} (${a.value}). What is causing this and what should we do?`)}`;
               return (
@@ -476,9 +501,23 @@ export default function InsightsPage() {
             })}
           </div>
           <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border-subtle)" }}>
-            <Link href={`/chat?new=1&q=${encodeURIComponent("Create a dunning campaign strategy for failed payments and at-risk accounts")}`} className="inline-link">
+            {(() => {
+              const dunningQuery = "Create a dunning campaign strategy for failed payments and at-risk accounts";
+              const dunningHref = `/chat?new=1&q=${encodeURIComponent(dunningQuery)}`;
+              return (
+            <Link
+              href={dunningHref}
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.assign(`${dunningHref}&run=${Date.now()}`);
+              }}
+              className="inline-link"
+              style={{ color: KPI_COLORS.blue.text }}
+            >
               Run dunning campaign <ArrowRight size={10} />
             </Link>
+              );
+            })()}
           </div>
         </div>
       </div>

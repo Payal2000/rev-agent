@@ -94,9 +94,15 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
+import { KPI_COLORS } from "@/lib/kpi-colors"
+
+function openNewChat(query: string) {
+  const href = `/chat?new=1&q=${encodeURIComponent(query)}&run=${Date.now()}`
+  window.location.assign(href)
+}
 
 export const schema = z.object({
-  id: z.number(),
+  id: z.union([z.number(), z.string()]),
   name: z.string(),
   tier: z.string(),
   mrr: z.number(),
@@ -107,10 +113,11 @@ export const schema = z.object({
 
 type Account = z.infer<typeof schema>
 
-function riskBadgeVariant(score: number): "destructive" | "secondary" | "outline" {
-  if (score >= 85) return "destructive"
-  if (score >= 70) return "secondary"
-  return "outline"
+function riskBadgeStyle(score: number) {
+  if (score >= 85) return { bg: KPI_COLORS.red.bg, text: KPI_COLORS.red.text }
+  if (score >= 70) return { bg: KPI_COLORS.orange.bg, text: KPI_COLORS.orange.text }
+  if (score >= 55) return { bg: KPI_COLORS.yellow.bg, text: KPI_COLORS.yellow.text }
+  return { bg: KPI_COLORS.blue.bg, text: KPI_COLORS.blue.text }
 }
 
 function riskLabel(score: number) {
@@ -121,12 +128,12 @@ function riskLabel(score: number) {
 }
 
 function tierColor(tier: string) {
-  if (tier === "Enterprise") return "text-sky-500"
-  if (tier === "Growth") return "text-amber-500"
-  return "text-slate-400"
+  if (tier === "Enterprise") return KPI_COLORS.blue.text
+  if (tier === "Growth") return KPI_COLORS.yellow.text
+  return KPI_COLORS.green.text
 }
 
-function DragHandle({ id }: { id: number }) {
+function DragHandle({ id }: { id: UniqueIdentifier }) {
   const { attributes, listeners } = useSortable({ id })
   return (
     <Button
@@ -184,7 +191,7 @@ const columns: ColumnDef<Account>[] = [
     accessorKey: "tier",
     header: "Tier",
     cell: ({ row }) => (
-      <span className={`text-sm font-medium ${tierColor(row.original.tier)}`}>
+      <span className="text-sm font-medium" style={{ color: tierColor(row.original.tier) }}>
         {row.original.tier}
       </span>
     ),
@@ -201,12 +208,19 @@ const columns: ColumnDef<Account>[] = [
   {
     accessorKey: "riskScore",
     header: "Risk",
-    cell: ({ row }) => (
-      <Badge variant={riskBadgeVariant(row.original.riskScore)} className="gap-1">
-        <IconAlertTriangle className="size-3" />
-        {row.original.riskScore} · {riskLabel(row.original.riskScore)}
-      </Badge>
-    ),
+    cell: ({ row }) => {
+      const tone = riskBadgeStyle(row.original.riskScore)
+      return (
+        <Badge
+          variant="outline"
+          className="gap-1"
+          style={{ background: tone.bg, color: tone.text, borderColor: `${tone.text}44` }}
+        >
+          <IconAlertTriangle className="size-3" />
+          {row.original.riskScore} · {riskLabel(row.original.riskScore)}
+        </Badge>
+      )
+    },
   },
   {
     accessorKey: "daysToChurn",
@@ -245,7 +259,13 @@ const columns: ColumnDef<Account>[] = [
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() =>
+              openNewChat(
+                `Investigate account risk: ${row.original.name} (${row.original.tier}). MRR $${row.original.mrr.toLocaleString()}, risk score ${row.original.riskScore}, estimated churn in ${row.original.daysToChurn} days. Signals: ${Array.isArray(row.original.signals) ? row.original.signals.join(", ") : row.original.signals}.`,
+              )
+            }
+          >
             <IconMessageChatbot className="size-4 mr-2" />
             Ask AI about this
           </DropdownMenuItem>
@@ -297,6 +317,10 @@ export function DataTable({ data: initialData }: { data: Account[] }) {
     useSensor(TouchSensor, {}),
     useSensor(KeyboardSensor, {})
   )
+
+  React.useEffect(() => {
+    setData(initialData)
+  }, [initialData])
 
   const filteredByTab = React.useMemo(() => {
     if (activeTab === "enterprise") return data.filter((r) => r.tier === "Enterprise")
@@ -552,7 +576,15 @@ function TableCellViewer({ item }: { item: Account }) {
         <DrawerHeader className="gap-1">
           <DrawerTitle className="flex items-center gap-2">
             {item.name}
-            <Badge variant={riskBadgeVariant(item.riskScore)} className="text-xs">
+            <Badge
+              variant="outline"
+              className="text-xs"
+              style={{
+                background: riskBadgeStyle(item.riskScore).bg,
+                color: riskBadgeStyle(item.riskScore).text,
+                borderColor: `${riskBadgeStyle(item.riskScore).text}44`,
+              }}
+            >
               {riskLabel(item.riskScore)} Risk
             </Badge>
           </DrawerTitle>
@@ -614,7 +646,14 @@ function TableCellViewer({ item }: { item: Account }) {
           </div>
         </div>
         <DrawerFooter>
-          <Button className="bg-[#18181b] hover:bg-[#27272a] text-white border-0">
+          <Button
+            className="bg-[#18181b] hover:bg-[#27272a] text-white border-0"
+            onClick={() =>
+              openNewChat(
+                `Investigate account risk: ${item.name} (${item.tier}). MRR $${item.mrr.toLocaleString()}, risk score ${item.riskScore}, estimated churn in ${item.daysToChurn} days. Signals: ${Array.isArray(item.signals) ? item.signals.join(", ") : item.signals}.`,
+              )
+            }
+          >
             <IconMessageChatbot className="size-4 mr-2" />
             Ask AI about this account
           </Button>
