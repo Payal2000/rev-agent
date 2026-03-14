@@ -2,6 +2,7 @@
 import json
 import logging
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from typing import Optional
 
 from fastapi import APIRouter, Query
@@ -74,25 +75,80 @@ async def get_anomalies(
 
 @router.get("/insights/signals")
 async def get_signals(db: DBDep, tenant: TenantDep):
-    """Revenue signals KPIs derived from the two most recent metrics_daily rows."""
+    """Revenue signals KPIs derived from MTD totals + previous month comparators."""
     result = await db.execute(
         text("""
-            SELECT mrr, expansion_mrr, contraction_mrr, new_mrr, churn_mrr,
-                   active_subscribers, date
-            FROM metrics_daily
-            WHERE company_id = :tenant_id
-            ORDER BY date DESC
-            LIMIT 2
+            WITH latest_day AS (
+                SELECT
+                    mrr,
+                    date
+                FROM metrics_daily
+                WHERE company_id = :tenant_id
+                ORDER BY date DESC
+                LIMIT 1
+            ),
+            mtd AS (
+                SELECT
+                    COALESCE(SUM(expansion_mrr), 0) AS expansion_mrr,
+                    COALESCE(SUM(contraction_mrr), 0) AS contraction_mrr,
+                    COALESCE(SUM(churn_mrr), 0) AS churn_mrr,
+                    COALESCE(SUM(new_mrr), 0) AS new_mrr
+                FROM metrics_daily
+                WHERE company_id = :tenant_id
+                  AND date >= DATE_TRUNC('month', NOW())
+            ),
+            prev_month AS (
+                SELECT
+                    COALESCE(SUM(expansion_mrr), 0) AS expansion_mrr,
+                    COALESCE(SUM(contraction_mrr), 0) AS contraction_mrr,
+                    COALESCE(SUM(churn_mrr), 0) AS churn_mrr
+                FROM metrics_daily
+                WHERE company_id = :tenant_id
+                  AND date >= DATE_TRUNC('month', NOW()) - INTERVAL '1 month'
+                  AND date < DATE_TRUNC('month', NOW())
+            ),
+            mrr_cmp AS (
+                SELECT
+                    -- current MRR snapshot (latest row in current month)
+                    COALESCE(
+                        (SELECT mrr FROM metrics_daily
+                         WHERE company_id = :tenant_id
+                           AND date >= DATE_TRUNC('month', NOW())
+                         ORDER BY date DESC
+                         LIMIT 1),
+                        (SELECT mrr FROM latest_day)
+                    ) AS current_mrr,
+                    -- previous month snapshot (latest row in previous month)
+                    COALESCE(
+                        (SELECT mrr FROM metrics_daily
+                         WHERE company_id = :tenant_id
+                           AND date >= DATE_TRUNC('month', NOW()) - INTERVAL '1 month'
+                           AND date < DATE_TRUNC('month', NOW())
+                         ORDER BY date DESC
+                         LIMIT 1),
+                        (SELECT mrr FROM latest_day)
+                    ) AS prev_mrr
+            )
+            SELECT
+                mrr_cmp.current_mrr,
+                mrr_cmp.prev_mrr,
+                mtd.expansion_mrr AS mtd_expansion_mrr,
+                mtd.contraction_mrr AS mtd_contraction_mrr,
+                mtd.churn_mrr AS mtd_churn_mrr,
+                mtd.new_mrr AS mtd_new_mrr,
+                prev_month.expansion_mrr AS prev_expansion_mrr,
+                prev_month.contraction_mrr AS prev_contraction_mrr,
+                prev_month.churn_mrr AS prev_churn_mrr
+            FROM mrr_cmp
+            CROSS JOIN mtd
+            CROSS JOIN prev_month
         """),
         {"tenant_id": tenant.id},
     )
-    rows = [dict(r._mapping) for r in result.fetchall()]
+    row = result.mappings().first()
 
-    if not rows:
+    if not row:
         return []
-
-    cur = rows[0]
-    prev = rows[1] if len(rows) > 1 else cur
 
     def pct(c, p):
         if p and p != 0:
@@ -102,17 +158,24 @@ async def get_signals(db: DBDep, tenant: TenantDep):
     def sign(val):
         return "up" if val >= 0 else "down"
 
-    mrr_delta = (cur["mrr"] or 0) - (prev["mrr"] or 0)
-    expansion = cur["expansion_mrr"] or 0
-    prev_expansion = prev["expansion_mrr"] or 0
-    contraction = cur["contraction_mrr"] or 0
-    prev_contraction = prev["contraction_mrr"] or 0
+    current_mrr = row["current_mrr"] or 0
+    prev_mrr = row["prev_mrr"] or current_mrr
+    mrr_delta = current_mrr - prev_mrr
+
+    expansion = row["mtd_expansion_mrr"] or 0
+    prev_expansion = row["prev_expansion_mrr"] or 0
+
+    contraction = row["mtd_contraction_mrr"] or 0
+    prev_contraction = row["prev_contraction_mrr"] or 0
+
+    churn = row["mtd_churn_mrr"] or 0
+    prev_churn = row["prev_churn_mrr"] or 0
 
     return [
         {
             "label": "MRR Growth MoM",
             "value": f"+${mrr_delta:,.0f}" if mrr_delta >= 0 else f"-${abs(mrr_delta):,.0f}",
-            "delta": pct(cur["mrr"] or 0, prev["mrr"] or 0),
+            "delta": pct(current_mrr, prev_mrr),
             "trend": sign(mrr_delta),
             "note": "",
             "colorKey": "amber",
@@ -135,9 +198,9 @@ async def get_signals(db: DBDep, tenant: TenantDep):
         },
         {
             "label": "Churn MRR",
-            "value": f"${abs(cur['churn_mrr'] or 0):,.0f}",
-            "delta": pct(abs(cur["churn_mrr"] or 0), abs(prev["churn_mrr"] or 0)),
-            "trend": "down" if abs(cur["churn_mrr"] or 0) > abs(prev["churn_mrr"] or 0) else "up",
+            "value": f"${abs(churn):,.0f}",
+            "delta": pct(abs(churn), abs(prev_churn)),
+            "trend": "down" if abs(churn) > abs(prev_churn) else "up",
             "note": "",
             "colorKey": "sky",
         },
@@ -537,7 +600,7 @@ Return ONLY the JSON array, no other text."""
         # Fallback: generate rule-based highlights from data
         highlights = _rule_based_highlights(cur, prev, churn_row, pastdue_row, anomaly_rows)
 
-    now_str = datetime.now(timezone.utc).strftime("%b %-d, %Y · %-I:%M %p") + " UTC"
+    now_str = datetime.now(ZoneInfo("America/New_York")).strftime("%b %-d, %Y · %-I:%M %p") + " EST"
 
     return {
         "generatedAt": now_str,
