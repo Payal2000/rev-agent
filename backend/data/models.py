@@ -93,8 +93,9 @@ class Invoice(Base):
     __tablename__ = "invoices"
 
     id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    subscription_id = Column(UUID(as_uuid=False), ForeignKey("subscriptions.id"), nullable=False)
+    subscription_id = Column(UUID(as_uuid=False), ForeignKey("subscriptions.id"), nullable=True)
     company_id = Column(UUID(as_uuid=False), ForeignKey("companies.id"), nullable=False)
+    stripe_customer_id = Column(String(255), nullable=True)
     stripe_invoice_id = Column(String(255), unique=True, nullable=True)
     amount = Column(Float, nullable=False)
     status = Column(String(50), nullable=False)   # paid / open / void / uncollectible
@@ -108,6 +109,7 @@ class Invoice(Base):
     __table_args__ = (
         Index("idx_invoices_company", "company_id"),
         Index("idx_invoices_subscription", "subscription_id"),
+        Index("idx_invoices_stripe_customer", "stripe_customer_id"),
     )
 
 
@@ -160,6 +162,24 @@ class MetricsDaily(Base):
     __table_args__ = (
         UniqueConstraint("company_id", "date", name="uq_metrics_company_date"),
         Index("idx_metrics_company_date", "company_id", "date"),
+    )
+
+
+# ── stripe_webhook_events ────────────────────────────────────────────────────
+
+class StripeWebhookEvent(Base):
+    __tablename__ = "stripe_webhook_events"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    stripe_event_id = Column(String(255), nullable=False, unique=True)
+    event_type = Column(String(100), nullable=False)
+    status = Column(String(20), nullable=False, default="processing")  # processing / processed / failed
+    error = Column(Text, nullable=True)
+    processed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=text("NOW()"))
+
+    __table_args__ = (
+        Index("idx_stripe_webhook_events_status", "status"),
     )
 
 

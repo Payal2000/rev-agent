@@ -86,6 +86,8 @@ async def init_db():
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         # Create all ORM tables
         await conn.run_sync(Base.metadata.create_all)
+        # Lightweight forward-only schema updates for local/dev environments.
+        await _run_lightweight_migrations(conn)
         # Enable Row Level Security on tenant tables
         await _enable_rls(conn)
 
@@ -118,6 +120,15 @@ async def _enable_rls(conn):
                 END IF;
             END $$;
         """))
+
+
+async def _run_lightweight_migrations(conn):
+    """Apply safe schema adjustments that are backward compatible."""
+    # Allow invoice storage for one-off/manual invoices that have no subscription.
+    await conn.execute(text("ALTER TABLE invoices ALTER COLUMN subscription_id DROP NOT NULL"))
+    # Keep Stripe customer id on invoices for fallback joins and analytics.
+    await conn.execute(text("ALTER TABLE invoices ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(255)"))
+    await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_invoices_stripe_customer ON invoices (stripe_customer_id)"))
 
 
 async def set_tenant_context(session: AsyncSession, tenant_id: str):
