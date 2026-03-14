@@ -33,6 +33,75 @@ const SUGGESTED_QUERIES = [
   "What anomalies were detected this month?",
 ]
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+type SyncStatus = {
+  status: "ok" | "error";
+  last_synced_at: string | null;
+};
+
+type WidgetHealthSummary = {
+  status: "ok" | "error";
+  summary: { healthy: number; total: number };
+};
+
+async function checkBackend(): Promise<boolean> {
+  try {
+    const r = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(2000) });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function fetchSyncStatus(): Promise<SyncStatus | null> {
+  try {
+    const r = await fetch(`${API_BASE}/health/data-sync`, { signal: AbortSignal.timeout(3000) });
+    if (!r.ok) return null;
+    return (await r.json()) as SyncStatus;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchWidgetHealth(): Promise<WidgetHealthSummary | null> {
+  try {
+    const r = await fetch(`${API_BASE}/health/widget-status`, { signal: AbortSignal.timeout(3500) });
+    if (!r.ok) return null;
+    return (await r.json()) as WidgetHealthSummary;
+  } catch {
+    return null;
+  }
+}
+
+function formatRelativeTime(iso: string | null): string {
+  if (!iso) return "n/a";
+  const d = new Date(iso);
+  const diffSec = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (diffSec < 60) return `${diffSec}s ago`;
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  return d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function formatEstDateTime(): string {
+  const date = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date());
+  const time = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).format(new Date());
+  return `${date} ${time} EST`;
+}
+
 // ── Command Palette ───────────────────────────────────────────────────────────
 function CommandPalette({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("")
@@ -216,7 +285,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
                     </span>
                     <span className="flex-1 min-w-0">
                       <span className="text-sm font-medium text-foreground">Ask AI: </span>
-                      <span className="text-sm text-muted-foreground">"{query.trim()}"</span>
+                      <span className="text-sm text-muted-foreground">&quot;{query.trim()}&quot;</span>
                     </span>
                     <kbd className="text-[10px] text-muted-foreground/40 font-mono border border-black/10 rounded px-1.5 py-0.5">↵</kbd>
                   </button>
@@ -238,6 +307,10 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
 // ── Site Header ───────────────────────────────────────────────────────────────
 export function SiteHeader() {
   const [open, setOpen] = useState(false)
+  const [backendLive, setBackendLive] = useState<boolean | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+  const [widgetHealth, setWidgetHealth] = useState<WidgetHealthSummary | null>(null);
+  const [estNow, setEstNow] = useState<string>(formatEstDateTime());
 
   // ⌘K or ⌘F to open
   useEffect(() => {
@@ -250,6 +323,32 @@ export function SiteHeader() {
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
   }, [])
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      const [live, sync, widgets] = await Promise.all([
+        checkBackend(),
+        fetchSyncStatus(),
+        fetchWidgetHealth(),
+      ]);
+      if (!mounted) return;
+      setBackendLive(live);
+      setSyncStatus(sync);
+      setWidgetHealth(widgets);
+    };
+    load();
+    const id = setInterval(load, 30000);
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setEstNow(formatEstDateTime()), 30000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <>
@@ -270,6 +369,31 @@ export function SiteHeader() {
 
         {/* Right — bell */}
         <div className="absolute right-0 flex items-center pr-5">
+          <div className="hidden md:flex items-center gap-2 mr-3">
+            {backendLive !== null && (
+              <span
+                className={`text-[11px] font-semibold px-2 py-1 rounded-full border ${
+                  backendLive
+                    ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                    : "text-slate-600 bg-slate-100 border-slate-200"
+                }`}
+              >
+                {backendLive ? "Live backend" : "Demo mode"}
+              </span>
+            )}
+            <span className="text-[11px] text-muted-foreground px-2 py-1 rounded-full border border-black/10 bg-white/70">
+              Last sync: <span className="text-foreground">{formatRelativeTime(syncStatus?.last_synced_at ?? null)}</span>
+            </span>
+            <span className="text-[11px] text-muted-foreground px-2 py-1 rounded-full border border-black/10 bg-white/70">
+              Widgets:{" "}
+              <span className="text-foreground">
+                {widgetHealth ? `${widgetHealth.summary.healthy}/${widgetHealth.summary.total}` : "n/a"}
+              </span>
+            </span>
+            <span className="text-[11px] text-muted-foreground px-2 py-1 rounded-full border border-black/10 bg-white/70">
+              {estNow}
+            </span>
+          </div>
           <button className="relative flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-black/5 transition-colors">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />

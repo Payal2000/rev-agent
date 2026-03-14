@@ -7,10 +7,22 @@ import { useLiveData } from "@/lib/hooks"
 import { AT_RISK_ACCOUNTS } from "@/lib/mock-data"
 
 export default function Page() {
-  const { data: atRisk } = useLiveData("/api/metrics/at-risk-accounts", AT_RISK_ACCOUNTS)
+  const { data: atRisk, error: atRiskError, source: atRiskSource } = useLiveData(
+    "/api/metrics/at-risk-accounts",
+    AT_RISK_ACCOUNTS,
+    { pollMs: 30000, allowFallback: false },
+  )
 
   return (
     <div className="@container/main flex flex-1 flex-col gap-4 py-4 md:gap-5 md:py-6">
+      {(atRiskError || atRiskSource !== "live") && (
+        <div className="mx-4 lg:mx-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs text-amber-900">
+          {atRiskError
+            ? `Live backend fetch failed: ${atRiskError}`
+            : "Using fallback data. Backend is not fully reachable."}
+        </div>
+      )}
+
       {/* Welcome header + KPI metric cards — one container */}
       <div className="mx-4 lg:mx-6 rounded-2xl bg-white/65 backdrop-blur-sm border-[3px] border-white shadow-sm">
         <div className="px-6 pt-6 pb-4">

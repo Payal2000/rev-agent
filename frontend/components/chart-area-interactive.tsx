@@ -52,7 +52,11 @@ function formatK(value: number) {
 export function ChartAreaInteractive() {
   const isMobile = useIsMobile()
   const [timeRange, setTimeRange] = React.useState("12m")
-  const { data: mrrTrend } = useLiveData("/api/metrics/mrr-trend", MRR_TREND)
+  const { data: mrrTrend } = useLiveData(
+    "/api/metrics/mrr-trend",
+    MRR_TREND,
+    { pollMs: 30000, allowFallback: false },
+  )
 
   React.useEffect(() => {
     if (isMobile) {

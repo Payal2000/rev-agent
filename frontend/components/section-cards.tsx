@@ -21,11 +21,24 @@ function formatMrr(value: number) {
 }
 
 export function SectionCards({ inner }: { inner?: boolean } = {}) {
-  const { data: metrics } = useLiveData("/api/metrics/summary", METRICS_SUMMARY)
+  const { data: metrics, source, error } = useLiveData(
+    "/api/metrics/summary",
+    METRICS_SUMMARY,
+    { pollMs: 30000, allowFallback: false },
+  )
   const churnUp = metrics.churnRate > metrics.churnRatePrev
 
   return (
-    <div className={`grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4 ${inner ? "px-4 pb-5 lg:px-5" : "px-4 lg:px-6"}`}>
+    <>
+      <div className={`${inner ? "px-4 pb-3 lg:px-5" : "px-4 pb-3 lg:px-6"}`}>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className={`font-semibold ${source === "live" ? "text-green-700" : "text-amber-700"}`}>
+            {source.toUpperCase()}
+          </span>
+          {error && <span>Backend fetch error: {error}</span>}
+        </div>
+      </div>
+      <div className={`grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4 ${inner ? "px-4 pb-5 lg:px-5" : "px-4 lg:px-6"}`}>
       {/* MRR */}
       <Card className="@container/card rounded-2xl shadow-sm border-0 dark:bg-white/5 dark:border-white/10" style={{ background: KPI_COLORS.amber.bg }}>
         <CardHeader>
@@ -129,6 +142,7 @@ export function SectionCards({ inner }: { inner?: boolean } = {}) {
           </div>
         </CardFooter>
       </Card>
-    </div>
+      </div>
+    </>
   )
 }
