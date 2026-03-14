@@ -210,7 +210,30 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### 5. Try it
+### 5. Generate Stripe test data (CLI synthesis)
+
+To continuously create synthetic Stripe test data and persist it in Postgres for dashboard/chat:
+
+```bash
+# Terminal 1: keep webhook forwarding running
+stripe listen \
+  --events customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,invoice.paid,invoice.payment_failed \
+  --forward-to localhost:8000/api/webhook/stripe
+```
+
+```bash
+# Terminal 2: generate mixed Stripe test events and sync to DB
+./scripts/stripe_cli_synth.sh 25 00000000-0000-0000-0000-000000000001
+```
+
+The script:
+- fires Stripe CLI triggers (`customer.subscription.*`, `invoice.*`)
+- runs `python -m data.stripe_sync <company_id>` in backend
+- prints fresh table counts (`customers`, `subscriptions`, `invoices`, `metrics_daily`, `stripe_webhook_events`)
+
+Run it repeatedly to keep synthetic test data flowing.
+
+### 6. Try it
 
 Open [http://localhost:3000](http://localhost:3000) and navigate to the **Chat** page. Try:
 
